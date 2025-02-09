@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cute Word Game</title>
+    <link rel="icon" type="image/png" href="./images/favicon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="start-screen" class="start-screen">
+        <div class="start-content">
+            <h1>🌸 💝Cute Word Game 🌸</h1>
+            <div class="mascot">
+                <img src="./images/pandafofo.gif" alt="Cute Panda" class="mascot-gif" loop="infinite">
+            </div>
+            <p class="welcome-text">Welcome to the cutest word game!</p>
+            <div class="start-buttons">
+                <button id="start-game" class="start-button">
+                    Start Playing 💝
+                </button>
+                <button id="continue-game" class="continue-button">
+                    Continue Game 💫
+                </button>
+                <button id="how-to-play" class="info-button">
+                    How to Play 📝
+                </button>
+            </div>
+            <div class="decoration">
+                <span>✨</span>
+                <span>🎀</span>
+                <span>💖</span>
+                <span>🌟</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container" class="container" style="display: none;">
+        <div class="game-header">
+            <h1>🌸 Cute Word Game 🌸</h1>
+            <div class="score">Score: <span id="score">0</span></div>
+        </div>
+        
+        <div class="game-board">
+            <!-- Board will be filled via JavaScript -->
+        </div>
+
+        <div class="word-display">
+            <div id="current-word"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
