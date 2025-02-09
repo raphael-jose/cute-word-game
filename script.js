@@ -629,7 +629,6 @@ class WordGame {
     }
 
     checkWord() {
-        // Pega apenas as letras, ignorando os números do hint
         const word = this.selectedTiles.map(tile => {
             const textNode = Array.from(tile.childNodes).find(node => 
                 node.nodeType === Node.TEXT_NODE
@@ -637,21 +636,15 @@ class WordGame {
             return textNode ? textNode.textContent : tile.textContent;
         }).join('');
         
-        // Verificar Easter Eggs primeiro
         if (this.easterEggs && this.easterEggs[word]) {
             this.sounds.easterEgg.play();
             this.showEasterEggModal(word);
+            return; // Retorna após mostrar o easter egg
         }
         
         if (this.levels[this.currentLevel].includes(word)) {
             const wordElement = document.querySelector(`[data-word="${word}"]`);
             if (wordElement && !wordElement.classList.contains('found')) {
-                // Remove números do hint
-                document.querySelectorAll('.letter-order').forEach(num => num.remove());
-                document.querySelectorAll('.hint-highlight').forEach(tile => 
-                    tile.classList.remove('hint-highlight')
-                );
-
                 this.sounds.success.currentTime = 0;
                 this.sounds.success.play();
                 wordElement.classList.add('found');
@@ -660,38 +653,30 @@ class WordGame {
                 this.updateScore();
                 this.updateLevelInfo();
                 
-                // Limpar seleções e highlights imediatamente
-                document.querySelectorAll('.letter-tile').forEach(tile => {
-                    tile.classList.remove('highlight');
-                });
-        
-        this.selectedTiles.forEach(tile => {
+                this.selectedTiles.forEach(tile => {
                     tile.classList.add('success');
                     setTimeout(() => {
                         tile.classList.remove('success');
                         tile.classList.remove('selected');
-            const newLetter = this.letters.charAt(
-                Math.floor(Math.random() * this.letters.length)
-            );
-                        // Atualiza apenas o texto principal
-                        const textNode = Array.from(tile.childNodes).find(node => 
-                            node.nodeType === Node.TEXT_NODE
+                        const newLetter = this.letters.charAt(
+                            Math.floor(Math.random() * this.letters.length)
                         );
-                        if (textNode) {
-                            textNode.textContent = newLetter;
-                        } else {
-            tile.textContent = newLetter;
-                        }
+                        tile.textContent = newLetter;
                     }, 500);
-        });
+                });
 
                 setTimeout(() => {
-        this.selectedTiles = [];
-        this.updateCurrentWord();
-        document.querySelectorAll('.connection-line').forEach(line => line.remove());
+                    this.selectedTiles = [];
+                    this.updateCurrentWord();
+                    document.querySelectorAll('.connection-line').forEach(line => line.remove());
                     
+                    // Verifica se completou o nível
                     if (this.wordsFound === this.wordsPerLevel) {
-                        this.nextLevel();
+                        if (this.currentLevel === 15) {
+                            this.nextLevel(); // Para o nível especial
+                        } else {
+                            this.showLevelCompleteModal();
+                        }
                     }
                 }, 600);
             }
@@ -1008,20 +993,23 @@ class WordGame {
 
         modal.querySelector('.next-level-button').addEventListener('click', () => {
             modal.remove();
-            this.startNextLevel();
+            // Incrementa o nível antes de iniciar o próximo
+            this.currentLevel++;
+            this.wordsFound = 0;
+            
+            // Remove a lista de palavras antiga
+            const oldWordList = document.querySelector('.word-list');
+            if (oldWordList) {
+                oldWordList.remove();
+            }
+            
+            // Cria nova lista de palavras
+            this.createWordList();
+            this.updateLevelInfo();
+            this.createBoard();
         });
 
-        // Adiciona animação de entrada
         setTimeout(() => modal.classList.add('show'), 100);
-    }
-
-    startNextLevel() {
-        this.currentLevel++;
-        this.wordsFound = 0;
-        document.querySelector('.word-list-container').remove();
-        this.createWordList();
-        this.updateLevelInfo();
-        this.createBoard();
     }
 
     showGameCompleteModal() {
