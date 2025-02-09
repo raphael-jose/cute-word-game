@@ -639,7 +639,7 @@ class WordGame {
         if (this.easterEggs && this.easterEggs[word]) {
             this.sounds.easterEgg.play();
             this.showEasterEggModal(word);
-            return; // Retorna após mostrar o easter egg
+            return;
         }
         
         if (this.levels[this.currentLevel].includes(word)) {
@@ -670,10 +670,9 @@ class WordGame {
                     this.updateCurrentWord();
                     document.querySelectorAll('.connection-line').forEach(line => line.remove());
                     
-                    // Verifica se completou o nível
-                    if (this.wordsFound === this.wordsPerLevel) {
+                    if (this.wordsFound >= this.wordsPerLevel) {
                         if (this.currentLevel === 15) {
-                            this.nextLevel(); // Para o nível especial
+                            this.nextLevel();
                         } else {
                             this.showLevelCompleteModal();
                         }
@@ -993,14 +992,18 @@ class WordGame {
 
         modal.querySelector('.next-level-button').addEventListener('click', () => {
             modal.remove();
+            
             // Incrementa o nível antes de iniciar o próximo
             this.currentLevel++;
             this.wordsFound = 0;
             
-            // Remove a lista de palavras antiga
-            const oldWordList = document.querySelector('.word-list');
-            if (oldWordList) {
-                oldWordList.remove();
+            // Remove todas as listas de palavras antigas
+            document.querySelectorAll('.word-list, .word-list-container').forEach(el => el.remove());
+            
+            // Remove o botão toggle se existir
+            const toggleButton = document.querySelector('.word-list-toggle');
+            if (toggleButton) {
+                toggleButton.remove();
             }
             
             // Cria nova lista de palavras
