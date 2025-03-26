@@ -716,7 +716,7 @@ class WordGame {
                                 <h2>To Jean, the love of my life 💖</h2>
                                 <p>From the first "hi" to every conversation that brightens my days, you have been my brightest star. This game is just a small way to show how much you mean to me. Every word here was written with love, but none of them can truly describe how much I love you.</p>
                                 <p>Even with oceans between us, my heart always finds its way back to you. One day, there will be no screens between us—just us, side by side, writing our own story.</p>
-                                <p class="signature">With all my love,<br>Raphel 💙✨</p>
+                                <p class="signature">With all my love,<br>Raphael 💙✨</p>
                             </div>
                             <button class="home-credits-button" style="opacity: 0">🏠</button>
                         </div>
