@@ -23,6 +23,7 @@ h1 {
     font-size: 28px;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
     margin-bottom: 15px;
+    line-height: 1.2;
 }
 
 .score {
@@ -437,6 +438,49 @@ h1 {
     -webkit-tap-highlight-color: transparent;
 }
 
+/* Modernização e alinhamento de emojis */
+.start-content h1,
+.game-header h1,
+.level-modal-header h2 {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.emoji {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    font-size: 1em;
+    margin: 0 6px;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
+}
+
+.emoji-heart {
+    transition: transform 0.2s ease;
+}
+
+.secret-heart {
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.secret-heart:hover {
+    transform: scale(1.15);
+    filter: drop-shadow(0 4px 6px rgba(255, 105, 180, 0.35));
+}
+
+.emoji-flower {
+    animation: gentle-float 3s ease-in-out infinite;
+}
+
+@keyframes gentle-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
 /* Ajuste para telas muito pequenas */
 @media (max-width: 320px) {
     .game-board {
@@ -454,6 +498,27 @@ h1 {
         font-size: 12px;
         padding: 4px 8px;
     }
+    
+    .start-content {
+        padding: 15px;
+    }
+    
+    .mascot-gif {
+        max-width: 150px;
+    }
+    
+    .start-content h1 {
+        font-size: 18px;
+    }
+    
+    .welcome-text {
+        font-size: 14px;
+    }
+    
+    .start-button, .info-button, .continue-button {
+        padding: 10px 15px;
+        font-size: 14px;
+    }
 }
 
 /* Ajuste para telas médias */
@@ -464,6 +529,15 @@ h1 {
 
     .game-board {
         max-width: 500px;
+    }
+    
+    .start-content {
+        width: 70%;
+        max-width: 500px;
+    }
+    
+    .mascot-gif {
+        max-width: 300px;
     }
 }
 
@@ -493,6 +567,18 @@ h1 {
         transform: translateX(-50%);
         background: rgba(255, 255, 255, 0.9);
         z-index: 100;
+    }
+    
+    /* Ajustes para tela inicial em modo paisagem */
+    .start-screen {
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    
+    .start-content {
+        width: 90%;
+        max-width: none;
+        margin: 0 auto;
     }
 }
 
@@ -585,7 +671,7 @@ h1 {
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
-    z-index: 2000;
+    z-index: 4000;
 }
 
 .level-modal.show {
@@ -616,6 +702,7 @@ h1 {
     color: #ff69b4;
     font-size: 28px;
     margin: 0 0 10px 0;
+    line-height: 1.2;
 }
 
 .stars {
@@ -796,20 +883,49 @@ h1 {
 }
 
 .mascot-gif {
-    width: 200px;
+    width: 100%;
+    max-width: 250px;
     height: auto;
-    border-radius: 15px;
-    box-shadow: 0 8px 25px rgba(255, 182, 193, 0.3);
-    animation: float 3s ease-in-out infinite;
-    pointer-events: none;
-    -webkit-user-drag: none;
-    -webkit-user-select: none;
-    user-select: none;
+    border-radius: 8px;
+    display: block;
+    margin: 10px auto;
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.3);
+}
+
+.jacare-image, .panda-image {
+    width: 250px;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 10px auto;
+    box-shadow: 0 0 15px rgba(255, 105, 180, 0.3);
 }
 
 @media (max-width: 600px) {
+    .jacare-image, .panda-image {
+        width: 200px;
+    }
+    
     .mascot-gif {
-        width: 150px;
+        max-width: 200px;
+    }
+    
+    .start-content {
+        padding: 20px;
+        width: 95%;
+    }
+    
+    .start-content h1 {
+        font-size: 20px;
+    }
+    
+    .welcome-text {
+        font-size: 16px;
+    }
+    
+    .start-button, .info-button, .continue-button {
+        padding: 12px 20px;
+        font-size: 16px;
     }
 }
 
@@ -978,7 +1094,7 @@ h1 {
     text-align: center;
 }
 
-.grinch-container, .panda-container {
+.jacare-container, .panda-container {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -997,7 +1113,7 @@ h1 {
 }
 
 @media (max-width: 600px) {
-    .grinch-image, .panda-image {
+    .jacare-image, .panda-image {
         width: 200px;
     }
 }
@@ -1064,12 +1180,12 @@ h1 {
 }
 
 /* Removendo as animações */
-.grinch-animation, .panda-animation {
+.jacare-animation, .panda-animation {
     display: inline-block;
     animation: none;
 }
 
-.grinch-container, .panda-container {
+.jacare-container, .panda-container {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1089,7 +1205,7 @@ h1 {
 }
 
 @media (max-width: 600px) {
-    .grinch-image, .panda-image {
+    .jacare-image, .panda-image {
         width: 200px;
     }
 }

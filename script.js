@@ -16,6 +16,9 @@ class WordGame {
             continueButton.style.display = 'none';
         }
         
+        // Inicializa variáveis de controle
+        this.isShuffling = false; // Controla se está ocorrendo um embaralhamento
+        
         this.setupStartScreen();
         this.setupTutorial();
     }
@@ -29,19 +32,19 @@ class WordGame {
                 modal.innerHTML = `
                     <div class="level-modal-content">
                         <div class="level-modal-header">
-                            <h2>How to Play 📝</h2>
+                            <h2>Como Jogar 📝</h2>
                         </div>
                         <div class="level-modal-body">
                             <div class="tutorial-step">
-                                <p>1. Find words in the letter grid 🔍</p>
-                                <p>2. Click and drag to select letters ✨</p>
-                                <p>3. Words can be in any direction 🔄</p>
-                                <p>4. Use hints if you need help 💡</p>
-                                <p>5. Find all words to level up 🎮</p>
-                                <p>6. Look for hidden special surprises! 🎁</p>
+                                <p>1. Encontre palavras na grade de letras 🔍</p>
+                                <p>2. Clique e arraste para selecionar as letras ✨</p>
+                                <p>3. As palavras podem estar em qualquer direção 🔄</p>
+                                <p>4. Use dicas se precisar de ajuda 💡</p>
+                                <p>5. Encontre todas as palavras para avançar de nível 🎮</p>
+                                <p>6. Procure por surpresas especiais escondidas! 🎁</p>
                             </div>
                         </div>
-                        <button class="next-level-button">Got it! 👍</button>
+                        <button class="next-level-button">Entendi! 👍</button>
                     </div>
                 `;
 
@@ -64,7 +67,7 @@ class WordGame {
         // Adiciona botão de Reset All
         resetAllButton.id = 'reset-all-button';
         resetAllButton.className = 'reset-all-button';
-        resetAllButton.innerHTML = '🗑️ Reset All Progress';
+        resetAllButton.innerHTML = '🗑️ Zerar Progresso';
         
         startButton.addEventListener('click', () => {
             this.startGame();
@@ -73,12 +76,12 @@ class WordGame {
         resetAllButton.addEventListener('click', () => {
             this.showConfirmModal(
                 '🚨 Reset All Progress',
-                'Are you sure you want to reset ALL progress? This cannot be undone!',
+                'Você tem certeza que deseja resetar todo o progresso? Isso não pode ser desfeito!',
                 () => {
                     localStorage.removeItem('wordGameSave');
                     continueButton.style.display = 'none';
                     resetAllButton.remove();
-                    this.showMessageModal('✅ Success', 'All progress has been reset!');
+                    this.showMessageModal('✅ Progresso Resetado', 'Todo o progresso foi resetado com sucesso!');
                 }
             );
         });
@@ -99,10 +102,9 @@ class WordGame {
             continueButton.style.display = 'none';
         }
 
-        // Adiciona o atalho secreto no emoji de coração
+        // Moderniza e alinha os emojis do título da tela inicial
         const title = document.querySelector('h1');
-        const heartEmoji = title.innerHTML.split('🌸')[1].trim();
-        title.innerHTML = `🌸 Cute Word Game <span class="secret-heart">💝</span> 🌸`;
+        title.innerHTML = `<span class="emoji emoji-flower">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji emoji-heart secret-heart">💝</span> <span class="emoji emoji-flower">🌸</span>`;
 
         document.querySelector('.secret-heart').addEventListener('click', () => {
             document.getElementById('start-screen').style.display = 'none';
@@ -115,9 +117,9 @@ class WordGame {
             this.boardSize = 6;
             this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
             this.currentLevel = 15; // Último nível
-            this.wordsPerLevel = 5;
-            this.wordsFound = 0;
             this.levels = this.createLevels();
+            this.wordsPerLevel = this.levels[this.currentLevel].length;
+            this.wordsFound = 0;
             this.hintsRemaining = 50;
             
             this.init();
@@ -136,9 +138,9 @@ class WordGame {
         this.boardSize = 6;
         this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
         this.currentLevel = 1;
-        this.wordsPerLevel = 5;
-        this.wordsFound = 0;
         this.levels = this.createLevels();
+        this.wordsPerLevel = this.levels[this.currentLevel].length;
+        this.wordsFound = 0;
         this.hintsRemaining = 50;
         
         this.init();
@@ -178,6 +180,9 @@ class WordGame {
     }
 
     setupSoundControls() {
+        // Evita criar botão de som duplicado
+        if (document.querySelector('.sound-button')) return;
+
         const soundButton = document.createElement('button');
         soundButton.className = 'sound-button';
         soundButton.innerHTML = '🔊'; // Começa mostrando que tem som
@@ -206,29 +211,35 @@ class WordGame {
         document.querySelector('.game-header').appendChild(soundButton);
     }
 
+    // ===== CHECKPOINT - VERSÃO ESTÁVEL - 10/12/2025 =====
+    // Esta versão tem o sistema de embaralhamento funcionando corretamente
+    // e as palavras estão sendo colocadas no tabuleiro de forma adequada.
+    // Se problemas futuros surgirem, podemos voltar a este ponto.
+    // ====================================================
+    
     createLevels() {
         // Easter Eggs separados
         this.easterEggs = {
-            'GRINCH': '🎄 You found the Grinch, I dont like it',
-            'PANDA': '🐼 Im ur Panda 🎋'
+            'JACARE': '🐊 Você encontrou o Jacaré mais fofo e cabeçudo do mundo',
+            'PANDA': '🐑🐏 BÉÉÉ 🐑🐏'
         };
 
         return {
-            1: ['LOVE', 'JEAN', 'RAPH', 'STAR', 'HOPE'],
-            2: ['HAPPY', 'SWEET', 'PEACE', 'FAIRY', 'ANGEL'],
-            3: ['DREAM', 'CAKE', 'HOME', 'PANDA', 'MOON'],
-            4: ['PARTY', 'DANCE', 'JOY', 'GRINCH', 'STAR'],
-            5: ['MAGIC', 'HEART', 'CUTE', 'ROSE', 'LIGHT'],
-            6: ['SMILE', 'CANDY', 'WISH', 'STAR', 'LOVE'],
-            7: ['SHINE', 'SONG', 'FAIRY', 'PURE', 'WING'],
-            8: ['CLOUD', 'STAR', 'FISH', 'BIRD', 'SUN'],
-            9: ['BLOOM', 'BOOK', 'SOFT', 'KISS', 'SONG'],
-            10: ['PEARL', 'RAIN', 'LEAF', 'DUCK', 'VEIL'],
-            11: ['RING', 'WIND', 'CORD', 'HAND', 'GOLD'],
-            12: ['MOON', 'GIFT', 'DICE', 'WISH', 'SNOW'],
-            13: ['SHIP', 'SAFE', 'SAND', 'SEAL', 'DROP'],
-            14: ['SEAT', 'SONG', 'SPIN', 'SEAL', 'TURN'],
-            15: ['MARRY', 'ME', 'NOW', 'DEAR', 'LOVE']
+            1: ['FLOR', 'BEM', 'PAZ', 'SOL', 'MAR', 'LUZ'],
+            2: ['GATO', 'CÃO', 'TODDY', 'PATA', 'RABO', 'PELO'],
+            3: ['CUBO', 'DADO', 'PIAO', 'PIPA', 'URSO', 'PANDA'],
+            4: ['PRAIA', 'SOL', 'MAR', 'JACARE', 'ONDA', 'AREIA'],
+            5: ['MUSICA', 'SOM', 'VOZ', 'NOTA', 'TOM', 'RITMO'],
+            6: ['PULAR', 'IDIOTA', 'NADAR', 'VOAR', 'LUTAR', 'JOGAR'],
+            7: ['CANTAR', 'TOCAR', 'DANÇA', 'CANTO', 'CORO', 'SAMBA'],
+            8: ['POEMA', 'PAGINA', 'LER', 'MONTEZ', 'AUTOR', 'CONTO'],
+            9: ['FILME', 'SERIE', 'CENA', 'ATOR', 'ATO', 'CURTA'],
+            10: ['BOLO', 'TAYLOR', 'QUEIJO', 'OVO', 'ARROZ', 'FEIJAO'],
+            11: ['PESCA', 'AMIGAS', 'CHUVA', 'VELA', 'PORTO', 'BARCO'],
+            12: ['PESO', 'BARRA', 'SUPINO', 'ROSCA', 'REMADA', 'BICEPS'],
+            13: ['AULA', 'LIVRO', 'LAPIS', 'PAPEL', 'CANETA', 'MESA'],
+            14: ['PAI', 'MÃE', 'IRMÃ', 'CASA', 'AMOR', 'FELIZ'],
+            15: ['CAROL', 'ACEITA', 'NAMORAR', 'COMIGO']
         };
     }
 
@@ -242,24 +253,55 @@ class WordGame {
         this.setupClearButton();
         this.setupGameControls();
         this.setupWordAvailabilityChecker();
+        
+        // Moderniza e alinha os emojis do título do jogo
+        const gameHeaderTitle = document.querySelector('.game-header h1');
+        if (gameHeaderTitle) {
+            gameHeaderTitle.innerHTML = `<span class="emoji emoji-flower">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji emoji-flower">🌸</span>`;
+        }
     }
 
     createBoard() {
         const gameBoard = document.querySelector('.game-board');
+        if (!gameBoard) return;
+        
         gameBoard.innerHTML = '';
         
         const createNewBoard = () => {
             const board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(''));
-            const words = this.levels[this.currentLevel];
+            const words = this.levels[this.currentLevel] || [];
+            
+            // Se não houver palavras, preenche com letras aleatórias
+            if (words.length === 0) {
+                for (let i = 0; i < this.boardSize; i++) {
+                    for (let j = 0; j < this.boardSize; j++) {
+                        board[i][j] = this.letters.charAt(
+                            Math.floor(Math.random() * this.letters.length)
+                        );
+                    }
+                }
+                return { board, allWordsPlaced: true };
+            }
+            
             const remainingWords = words.filter(word => {
+                if (typeof word !== 'string') return false;
                 const wordElement = document.querySelector(`[data-word="${word}"]`);
                 return !wordElement || !wordElement.classList.contains('found');
             });
 
+            // Ordena as palavras da maior para a menor (mais difícil de colocar primeiro)
+            remainingWords.sort((a, b) => b.length - a.length);
+            
+            let allWordsPlaced = true;
+            
             // Tenta colocar primeiro as palavras que faltam
             for (const word of remainingWords) {
-                if (!this.placeWordOnBoard(word, board)) {
-                    return null; // Se falhar em colocar alguma palavra, tenta novamente
+                if (word && typeof word === 'string') {
+                    if (!this.placeWordOnBoard(word, board)) {
+                        console.warn(`Não foi possível colocar a palavra: ${word}`);
+                        allWordsPlaced = false;
+                        // Continua mesmo se não conseguir colocar a palavra
+                    }
                 }
             }
 
@@ -273,29 +315,105 @@ class WordGame {
                     }
                 }
             }
-            return board;
+            
+            return { board, allWordsPlaced };
         };
 
         let attempts = 0;
-        const maxAttempts = 5;
-        let board = null;
+        const maxAttempts = 10; // Aumentei o número de tentativas
+        let bestBoard = null;
+        let bestWordCount = 0;
 
-        while (attempts < maxAttempts && !board) {
-            board = createNewBoard();
-            if (!board) {
-                attempts++;
-                if (attempts < maxAttempts) {
-                    this.showShuffleMessage();
+        while (attempts < maxAttempts) {
+            const result = createNewBoard();
+            if (result) {
+                const { board, allWordsPlaced } = result;
+                const placedWordCount = this.countPlacedWords(board);
+                
+                // Se conseguiu colocar todas as palavras, usa este tabuleiro
+                if (allWordsPlaced) {
+                    this.renderBoard(board);
+                    return;
                 }
+                
+                // Senão, mantém o melhor tabuleiro encontrado até agora
+                if (placedWordCount > bestWordCount) {
+                    bestBoard = board;
+                    bestWordCount = placedWordCount;
+                }
+            }
+            
+            attempts++;
+            if (attempts < maxAttempts) {
+                this.showShuffleMessage();
+                // Pequeno atraso para não travar o navegador
+                const start = Date.now();
+                while (Date.now() - start < 300) { /* espera 300ms */ }
             }
         }
 
-        if (!board) {
+        // Se chegou aqui, não conseguiu colocar todas as palavras
+        if (bestBoard) {
+            console.log(`Usando melhor tabuleiro encontrado (${bestWordCount} de ${this.wordsPerLevel} palavras)`);
+            this.renderBoard(bestBoard);
+        } else {
             console.log("Usando tabuleiro de emergência");
-            board = this.createEmergencyBoard();
+            this.renderBoard(this.createEmergencyBoard());
         }
-
-        this.renderBoard(board);
+    }
+    
+    // Conta quantas palavras do nível atual estão no tabuleiro
+    countPlacedWords(board) {
+        const words = this.levels[this.currentLevel] || [];
+        let count = 0;
+        
+        for (const word of words) {
+            if (this.isWordOnBoard(word, board)) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
+    
+    // Verifica se uma palavra está no tabuleiro
+    isWordOnBoard(word, board) {
+        const directions = [
+            [0, 1],   // direita
+            [1, 0],   // baixo
+            [1, 1],   // diagonal direita-baixo
+            [1, -1],  // diagonal direita-cima
+            [0, -1],  // esquerda
+            [-1, 0],  // cima
+            [-1, -1], // diagonal esquerda-cima
+            [-1, 1]   // diagonal esquerda-baixo
+        ];
+        
+        for (let row = 0; row < this.boardSize; row++) {
+            for (let col = 0; col < this.boardSize; col++) {
+                for (const [dx, dy] of directions) {
+                    let found = true;
+                    
+                    for (let i = 0; i < word.length; i++) {
+                        const currentRow = row + (dx * i);
+                        const currentCol = col + (dy * i);
+                        
+                        if (currentRow < 0 || currentRow >= this.boardSize || 
+                            currentCol < 0 || currentCol >= this.boardSize || 
+                            board[currentRow][currentCol] !== word[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    
+                    if (found) {
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 
     renderBoard(board) {
@@ -329,24 +447,67 @@ class WordGame {
             [0, 1],   // direita
             [1, 0],   // baixo
             [1, 1],   // diagonal direita-baixo
-            [-1, 1],  // diagonal direita-cima
+            [1, -1],  // diagonal direita-cima
             [0, -1],  // esquerda
             [-1, 0],  // cima
             [-1, -1], // diagonal esquerda-cima
-            [1, -1]   // diagonal esquerda-baixo
+            [-1, 1]   // diagonal esquerda-baixo
         ];
 
-        // Aumenta o número de tentativas para garantir que a palavra seja colocada
-        for (let attempts = 0; attempts < 200; attempts++) {
+        // Primeiro, tenta todas as direções para cada posição
+        for (let row = 0; row < this.boardSize; row++) {
+            for (let col = 0; col < this.boardSize; col++) {
+                // Embaralha as direções para maior aleatoriedade
+                const shuffledDirections = [...directions].sort(() => Math.random() - 0.5);
+                
+                for (const direction of shuffledDirections) {
+                    if (this.canPlaceWord(word, row, col, direction, board)) {
+                        // Encontrou uma posição válida, coloca a palavra
+                        for (let i = 0; i < word.length; i++) {
+                            const currentRow = row + (direction[0] * i);
+                            const currentCol = col + (direction[1] * i);
+                            board[currentRow][currentCol] = word[i];
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        // Se não encontrou uma posição, tenta forçar a colocação sobrepondo letras
+        for (let attempts = 0; attempts < 100; attempts++) {
             const direction = directions[Math.floor(Math.random() * directions.length)];
-            const startRow = Math.floor(Math.random() * this.boardSize);
-            const startCol = Math.floor(Math.random() * this.boardSize);
-
-            if (this.canPlaceWord(word, startRow, startCol, direction, board)) {
-                this.placeWord(word, startRow, startCol, direction, board);
+            const startRow = Math.floor(Math.random() * (this.boardSize - word.length * Math.abs(direction[0])));
+            const startCol = Math.floor(Math.random() * (this.boardSize - word.length * Math.abs(direction[1])));
+            
+            let canPlace = true;
+            for (let i = 0; i < word.length; i++) {
+                const currentRow = startRow + (direction[0] * i);
+                const currentCol = startCol + (direction[1] * i);
+                
+                if (currentRow < 0 || currentRow >= this.boardSize || 
+                    currentCol < 0 || currentCol >= this.boardSize) {
+                    canPlace = false;
+                    break;
+                }
+                
+                const cell = board[currentRow][currentCol];
+                if (cell !== '' && cell !== word[i]) {
+                    canPlace = false;
+                    break;
+                }
+            }
+            
+            if (canPlace) {
+                for (let i = 0; i < word.length; i++) {
+                    const currentRow = startRow + (direction[0] * i);
+                    const currentCol = startCol + (direction[1] * i);
+                    board[currentRow][currentCol] = word[i];
+                }
                 return true;
             }
         }
+        
         return false;
     }
 
@@ -368,14 +529,6 @@ class WordGame {
         return true;
     }
 
-    placeWord(word, startRow, startCol, [dx, dy], board) {
-        for (let i = 0; i < word.length; i++) {
-            const row = startRow + (dx * i);
-            const col = startCol + (dy * i);
-            board[row][col] = word[i];
-        }
-    }
-
     setupEventListeners() {
         document.querySelector('.game-board').addEventListener('click', (e) => {
             if (e.target.classList.contains('letter-tile')) {
@@ -386,13 +539,14 @@ class WordGame {
 
     createWordList() {
         const container = document.querySelector('.container');
-        const wordListContainer = document.createElement('div');
-        wordListContainer.className = 'word-list-container';
-        
+
+        // Remove listas e toggles antigos para não duplicar
+        document.querySelectorAll('.word-list, .word-list-toggle').forEach(el => el.remove());
+
         // Criar botão toggle para mobile
         const toggleButton = document.createElement('button');
         toggleButton.className = 'word-list-toggle';
-        toggleButton.innerHTML = '📝 View Words';
+        toggleButton.innerHTML = '📝 Ver Palavras';
         
         const wordList = document.createElement('div');
         wordList.className = 'word-list';
@@ -408,7 +562,7 @@ class WordGame {
         toggleButton.addEventListener('click', () => {
             wordList.classList.toggle('show');
             toggleButton.classList.toggle('active');
-            toggleButton.innerHTML = wordList.classList.contains('show') ? '❌ Close' : '📝 View Words';
+            toggleButton.innerHTML = wordList.classList.contains('show') ? '❌ Fechar' : '📝 Ver Palavras';
         });
         
         container.appendChild(toggleButton);
@@ -423,11 +577,11 @@ class WordGame {
                     [0, 1],   // direita
                     [1, 0],   // baixo
                     [1, 1],   // diagonal direita-baixo
-                    [-1, 1],  // diagonal direita-cima
+                    [1, -1],  // diagonal direita-cima
                     [0, -1],  // esquerda
                     [-1, 0],  // cima
                     [-1, -1], // diagonal esquerda-cima
-                    [1, -1]   // diagonal esquerda-baixo
+                    [-1, 1]   // diagonal esquerda-baixo
                 ];
 
                 for (const [dx, dy] of directions) {
@@ -491,7 +645,7 @@ class WordGame {
     updateLevelInfo() {
         const levelInfo = document.querySelector('.level-info') || document.createElement('div');
         levelInfo.className = 'level-info';
-        levelInfo.innerHTML = `Level ${this.currentLevel} - Words found: ${this.wordsFound}/${this.wordsPerLevel}`;
+        levelInfo.innerHTML = `Nível ${this.currentLevel} - Palavras encontradas: ${this.wordsFound}/${this.wordsPerLevel}`;
         
         if (!document.querySelector('.level-info')) {
             document.querySelector('.game-header').appendChild(levelInfo);
@@ -662,6 +816,11 @@ class WordGame {
                             Math.floor(Math.random() * this.letters.length)
                         );
                         tile.textContent = newLetter;
+                        const row = parseInt(tile.dataset.row, 10);
+                        const col = parseInt(tile.dataset.col, 10);
+                        if (!isNaN(row) && !isNaN(col) && this.board && this.board[row]) {
+                            this.board[row][col] = newLetter;
+                        }
                     }, 500);
                 });
 
@@ -690,15 +849,15 @@ class WordGame {
             modal.innerHTML = `
                 <div class="level-modal-content">
                     <div class="level-modal-header">
-                        <h2>💝 Special Moment 💝</h2>
+                        <h2>💝 Momento Especial 💝</h2>
                     </div>
                     <div class="level-modal-body">
                         <div class="proposal-animation">💍</div>
-                        <p class="proposal-message">Marry Me?</p>
+                        <p class="proposal-message">Você quer se casar comigo?</p>
                     </div>
                     <div class="proposal-buttons">
-                        <button class="yes-button">Yes! 💖</button>
-                        <button class="maybe-button">Maybe... 🤔</button>
+                        <button class="yes-button">Sim! 💖</button>
+                        <button class="maybe-button">Talvez... 🤔</button>
                     </div>
                 </div>
             `;
@@ -713,10 +872,11 @@ class WordGame {
                     <div class="level-modal-content">
                         <div class="level-modal-body">
                             <div class="credits-scroll">
-                                <h2>To Jean, the love of my life 💖</h2>
-                                <p>From the first "hi" to every conversation that brightens my days, you have been my brightest star. This game is just a small way to show how much you mean to me. Every word here was written with love, but none of them can truly describe how much I love you.</p>
-                                <p>Even with oceans between us, my heart always finds its way back to you. One day, there will be no screens between us—just us, side by side, writing our own story.</p>
-                                <p class="signature">With all my love,<br>Raphael 💙✨</p>
+                                <h2>Para Carol 💖</h2>
+                                <p>Desde o primeiro "oi" até as conversas que sempre acabam em risada, você virou parte dos meus dias sem pedir licença. Este jogo é só um detalhe perto do que eu sinto, mas cada palavra aqui carrega algo verdadeiro: o carinho, a amizade e esse sentimento que cresceu quietinho.</p>
+                                <p>A gente brinca, zoa — eu até te chamo de jacaré (mesmo sabendo que você não gosta 😅) — mas, no meio disso tudo, eu percebi que não é só amizade. Eu gosto de você de um jeito diferente, mais profundo, mais calmo… mais real.</p>
+                                <p>Não escrevo isso pra te pressionar, escrevo porque quero ser honesto. Eu gostaria de tentar algo a mais com você. Namorar, cuidar, estar presente. Se for pra continuar só como amigos, eu respeito — mas precisava te dizer que meu sentimento é amor.</p>
+                                <p class="signature">Com carinho, verdade e coragem,<br>Raphael 💙✨</p>
                             </div>
                             <button class="home-credits-button" style="opacity: 0">🏠</button>
                         </div>
@@ -743,10 +903,10 @@ class WordGame {
                 messageModal.innerHTML = `
                     <div class="level-modal-content">
                         <div class="level-modal-header">
-                            <h2>💝 Perfect!</h2>
+                            <h2>💝 Perfeito!</h2>
                         </div>
                         <div class="level-modal-body">
-                            <p>I love you! 💑</p>
+                            <p>Eu te amo! 💑</p>
                         </div>
                         <button class="next-level-button">OK 👍</button>
                     </div>
@@ -768,10 +928,10 @@ class WordGame {
                 messageModal.innerHTML = `
                     <div class="level-modal-content">
                         <div class="level-modal-header">
-                            <h2>😊 No pressure!</h2>
+                            <h2>😊 Sem pressa!</h2>
                         </div>
                         <div class="level-modal-body">
-                            <p>Take your time! 💕</p>
+                            <p>Leve seu tempo! 💕</p>
                         </div>
                         <button class="next-level-button">OK 👍</button>
                     </div>
@@ -796,10 +956,13 @@ class WordGame {
     }
 
     setupHintButton() {
+        // Evita duplicar botão de dica
+        if (document.getElementById('hint-button')) return;
+
         const hintButton = document.createElement('button');
         hintButton.id = 'hint-button';
         hintButton.className = 'hint-button';
-        hintButton.innerHTML = `💡 Hint (${this.hintsRemaining})`;
+        hintButton.innerHTML = `💡 Dica (${this.hintsRemaining})`;
         
         hintButton.addEventListener('click', () => {
             this.useHint();
@@ -810,7 +973,7 @@ class WordGame {
 
     useHint() {
         if (this.hintsRemaining <= 0) {
-            alert('No more hints available! 🌸');
+            alert('Não há mais dicas disponíveis! 🌸');
             return;
         }
 
@@ -822,7 +985,7 @@ class WordGame {
         });
 
         if (remainingWords.length === 0) {
-            alert('You found all words in this level! 🎉');
+            alert('Você encontrou todas as palavras neste nível! 🎉');
             return;
         }
 
@@ -841,11 +1004,11 @@ class WordGame {
                     [0, 1],   // direita
                     [1, 0],   // baixo
                     [1, 1],   // diagonal direita-baixo
-                    [-1, 1],  // diagonal direita-cima
+                    [1, -1],  // diagonal direita-cima
                     [0, -1],  // esquerda
                     [-1, 0],  // cima
                     [-1, -1], // diagonal esquerda-cima
-                    [1, -1]   // diagonal esquerda-baixo
+                    [-1, 1]   // diagonal esquerda-baixo
                 ];
 
                 for (const [dx, dy] of directions) {
@@ -915,49 +1078,53 @@ class WordGame {
         }
 
         this.hintsRemaining--;
-        document.getElementById('hint-button').innerHTML = `💡 Hint (${this.hintsRemaining})`;
+        document.getElementById('hint-button').innerHTML = `💡 Dica (${this.hintsRemaining})`;
     }
 
     shuffleBoard() {
+        if (this.isShuffling) return;
+        this.isShuffling = true;
         this.showShuffleMessage();
+        setTimeout(() => this.actuallyShuffle(), 1000);
+    }
+
+    actuallyShuffle() {
+        // Cria novo tabuleiro garantindo que as palavras não encontradas estejam presentes
+        const words = this.levels[this.currentLevel];
+        const remainingWords = words.filter(word => {
+            const wordElement = document.querySelector(`[data-word="${word}"]`);
+            return !wordElement.classList.contains('found');
+        });
+
+        const board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(''));
         
-        setTimeout(() => {
-            // Cria novo tabuleiro garantindo que as palavras não encontradas estejam presentes
-            const words = this.levels[this.currentLevel];
-            const remainingWords = words.filter(word => {
-                const wordElement = document.querySelector(`[data-word="${word}"]`);
-                return !wordElement.classList.contains('found');
-            });
-
-            const board = Array(this.boardSize).fill().map(() => Array(this.boardSize).fill(''));
-            
-            // Tenta colocar cada palavra restante
-            let allPlaced = true;
-            for (const word of remainingWords) {
-                if (!this.placeWordOnBoard(word, board)) {
-                    allPlaced = false;
-                    break;
-                }
+        // Tenta colocar cada palavra restante
+        let allPlaced = true;
+        for (const word of remainingWords) {
+            if (!this.placeWordOnBoard(word, board)) {
+                allPlaced = false;
+                break;
             }
+        }
 
-            // Se conseguiu colocar todas as palavras, preenche o resto com letras aleatórias
-            if (allPlaced) {
-                for (let i = 0; i < this.boardSize; i++) {
-                    for (let j = 0; j < this.boardSize; j++) {
-                        if (board[i][j] === '') {
-                            board[i][j] = this.letters.charAt(
-                                Math.floor(Math.random() * this.letters.length)
-                            );
-                        }
+        // Se conseguiu colocar todas as palavras, preenche o resto com letras aleatórias
+        if (allPlaced) {
+            for (let i = 0; i < this.boardSize; i++) {
+                for (let j = 0; j < this.boardSize; j++) {
+                    if (board[i][j] === '') {
+                        board[i][j] = this.letters.charAt(
+                            Math.floor(Math.random() * this.letters.length)
+                        );
                     }
                 }
-                this.board = board;
-                this.renderBoard(board);
-            } else {
-                // Se falhou, tenta novamente
-                setTimeout(() => this.shuffleBoard(), 500);
             }
-        }, 1000);
+            this.board = board;
+            this.renderBoard(board);
+            this.isShuffling = false;
+        } else {
+            // Se falhou, tenta novamente mantendo o estado de embaralhamento
+            setTimeout(() => this.actuallyShuffle(), 500);
+        }
     }
 
     showLevelCompleteModal() {
@@ -966,23 +1133,23 @@ class WordGame {
         modal.innerHTML = `
             <div class="level-modal-content">
                 <div class="level-modal-header">
-                    <h2>🎉 Congratulations! 🎉</h2>
+                    <h2>🎉 Parabéns! 🎉</h2>
                     <div class="stars">⭐⭐⭐</div>
                 </div>
                 <div class="level-modal-body">
-                    <p>You completed Level ${this.currentLevel}!</p>
+                    <p>Você completou o Nível ${this.currentLevel}!</p>
                     <div class="level-stats">
                         <div class="stat">
-                            <span class="stat-label">Score:</span>
+                            <span class="stat-label">Pontuação:</span>
                             <span class="stat-value">${this.score}</span>
                         </div>
                         <div class="stat">
-                            <span class="stat-label">Words Found:</span>
+                            <span class="stat-label">Palavras Encontradas:</span>
                             <span class="stat-value">${this.wordsPerLevel}</span>
                         </div>
                     </div>
                 </div>
-                <button class="next-level-button">Next Level 🚀</button>
+                <button class="next-level-button">Próximo Nível 🚀</button>
             </div>
         `;
 
@@ -995,6 +1162,8 @@ class WordGame {
             
             // Incrementa o nível antes de iniciar o próximo
             this.currentLevel++;
+            this.levels = this.createLevels();
+            this.wordsPerLevel = this.levels[this.currentLevel].length;
             this.wordsFound = 0;
             
             // Remove todas as listas de palavras antigas
@@ -1021,28 +1190,28 @@ class WordGame {
         modal.innerHTML = `
             <div class="level-modal-content">
                 <div class="level-modal-header">
-                    <h2>Will You Marry Me? 💍</h2>
+                    <h2>Quer se Casar namorar? 💍</h2>
                     <div class="stars">💝💝💝</div>
                 </div>
                 <div class="level-modal-body">
-                    <p>You completed all levels!</p>
+                    <p>Você completou todos os níveis!</p>
                     <div class="level-stats">
                         <div class="stat">
-                            <span class="stat-label">Final Score:</span>
+                            <span class="stat-label">Pontuação Final:</span>
                             <span class="stat-value">${this.score}</span>
                         </div>
                     </div>
                     <p class="proposal-message">
-                        You're the missing piece to my puzzle! 💑<br>
-                        Will you make me the happiest person alive? 💕
+                        Você é a peça que faltava no meu quebra-cabeça! 💑<br>
+                        Você quer se namorar comigo? 💕
                     </p>
                     <div class="proposal-animation">
                         💑💍💒
                     </div>
                 </div>
                 <div class="proposal-buttons">
-                    <button class="yes-button">Yes! 💝</button>
-                    <button class="maybe-button">Maybe... 🤔</button>
+                    <button class="yes-button">Sim! 💝</button>
+                    <button class="maybe-button">Talvez... 🤔</button>
                 </div>
             </div>
         `;
@@ -1066,15 +1235,15 @@ class WordGame {
         modal.className = 'level-modal easter-egg-modal';
         
         // Configuração dos GIFs com caminho relativo
-        const pandaGif = './images/panda.gif';
-        const grinchGif = './images/grinch.gif';
+        const pandaGif = './images/béé.gif';
+        const jacareGif = './images/jacare.png';
         
         // Conteúdo baseado na palavra encontrada com tratamento de erro
-        const easterEggContent = word === 'GRINCH' ? 
-            `<img src="${grinchGif}" 
-                 class="grinch-image" 
-                 alt="Grinch"
-                 onerror="console.error('Erro ao carregar Grinch:', this.src); this.onerror=null; this.src=''; this.insertAdjacentHTML('afterend', '🎄');">` :
+        const easterEggContent = word === 'JACARE' ? 
+            `<img src="${jacareGif}" 
+                 class="jacare-image" 
+                 alt="Jacare"
+                 onerror="console.error('Erro ao carregar Jacaré:', this.src); this.onerror=null; this.src=''; this.insertAdjacentHTML('afterend', '🐊');">` :
             `<img src="${pandaGif}" 
                  class="panda-image" 
                  alt="Panda"
@@ -1083,7 +1252,7 @@ class WordGame {
         modal.innerHTML = `
             <div class="level-modal-content">
                 <div class="level-modal-header">
-                    <h2>Secret Word Found! 🎉</h2>
+                    <h2>Palavra Secreta Encontrada! 🎉</h2>
                 </div>
                 <div class="level-modal-body">
                     <p>${this.easterEggs[word]}</p>
@@ -1091,7 +1260,7 @@ class WordGame {
                         ${easterEggContent}
                     </div>
                 </div>
-                <button class="next-level-button">Continue Playing 🎮</button>
+                <button class="next-level-button">Continuar Jogando 🎮</button>
             </div>
         `;
 
@@ -1108,16 +1277,20 @@ class WordGame {
                 this.updateScore();
                 this.updateLevelInfo();
                 
-                // Limpar seleções
                 this.selectedTiles.forEach(tile => {
-                    tile.classList.remove('selected');
                     tile.classList.add('success');
                     setTimeout(() => {
                         tile.classList.remove('success');
+                        tile.classList.remove('selected');
                         const newLetter = this.letters.charAt(
                             Math.floor(Math.random() * this.letters.length)
                         );
                         tile.textContent = newLetter;
+                        const row = parseInt(tile.dataset.row, 10);
+                        const col = parseInt(tile.dataset.col, 10);
+                        if (!isNaN(row) && !isNaN(col) && this.board && this.board[row]) {
+                            this.board[row][col] = newLetter;
+                        }
                     }, 500);
                 });
                 
@@ -1141,7 +1314,7 @@ class WordGame {
     showShuffleMessage() {
         const message = document.createElement('div');
         message.className = 'shuffle-message';
-        message.innerHTML = '🎲 Shuffling...';
+        message.innerHTML = '🎲 Embaralhando...';
         document.body.appendChild(message);
 
         setTimeout(() => {
@@ -1149,51 +1322,17 @@ class WordGame {
         }, 800);
     }
 
-    checkAvailableWords() {
-        const words = this.levels[this.currentLevel];
-        const foundWords = Array.from(document.querySelectorAll('.word-item.found')).map(el => el.dataset.word);
-        const remainingWords = words.filter(word => !foundWords.includes(word));
-
-        // Se não houver palavras restantes, retorna true
-        if (remainingWords.length === 0) return true;
-
-        // Verifica se pelo menos uma palavra pode ser encontrada
-        let anyWordCanBeFound = false;
-        for (const word of remainingWords) {
-            for (let row = 0; row < this.boardSize; row++) {
-                for (let col = 0; col < this.boardSize; col++) {
-                    if (this.canWordBeFoundFromPosition(word, row, col)) {
-                        anyWordCanBeFound = true;
-                        break;
-                    }
-                }
-                if (anyWordCanBeFound) break;
-            }
-            if (anyWordCanBeFound) break;
-        }
-
-        // Se nenhuma palavra pode ser encontrada, faz o shuffle
-        if (!anyWordCanBeFound) {
-            this.showShuffleMessage();
-            setTimeout(() => {
-                this.createBoard();
-            }, 1000);
-            return false;
-        }
-
-        return true;
-    }
-
+    // Verifica se uma palavra pode ser formada a partir de uma posição
     canWordBeFoundFromPosition(word, startRow, startCol) {
         const directions = [
             [0, 1],   // direita
             [1, 0],   // baixo
             [1, 1],   // diagonal direita-baixo
-            [-1, 1],  // diagonal direita-cima
+            [1, -1],  // diagonal direita-cima
             [0, -1],  // esquerda
             [-1, 0],  // cima
             [-1, -1], // diagonal esquerda-cima
-            [1, -1]   // diagonal esquerda-baixo
+            [-1, 1]   // diagonal esquerda-baixo
         ];
 
         for (const [dx, dy] of directions) {
@@ -1217,24 +1356,66 @@ class WordGame {
         return false;
     }
 
-    // Adicione um verificador periódico
-    setupWordAvailabilityChecker() {
-        setInterval(() => {
-            if (!this.checkAvailableWords()) {
-                this.showShuffleMessage();
-                setTimeout(() => {
-                    this.createBoard();
-                }, 1000);
+    // Verifica se ainda existem palavras disponíveis no tabuleiro
+    checkAvailableWords() {
+        const levelWords = this.levels[this.currentLevel] || [];
+
+        // Palavras que ainda não foram marcadas como encontradas
+        const remainingWords = levelWords.filter(word => {
+            if (!word || typeof word !== 'string' || word.trim() === '') return false;
+            const el = document.querySelector(`[data-word="${word}"]`);
+            return !el || !el.classList.contains('found');
+        });
+
+        if (remainingWords.length === 0) {
+            return true; // nada para procurar, nível já completo
+        }
+
+        // Procura de forma completa: cada palavra em cada posição
+        for (const word of remainingWords) {
+            for (let row = 0; row < this.boardSize; row++) {
+                for (let col = 0; col < this.boardSize; col++) {
+                    if (this.canWordBeFoundFromPosition(word, row, col)) {
+                        return true; // pelo menos uma palavra ainda é possível
+                    }
+                }
             }
-        }, 10000); // Verifica a cada 10 segundos
+        }
+
+        // Se chegou aqui, provavelmente travou (nenhuma palavra restante pode ser formada)
+        // Deixa o embaralhamento real ser acionado por shuffleBoard, usando o guard de isShuffling
+        this.shuffleBoard();
+        return false;
+    }
+
+    // Verificador de disponibilidade de palavras
+    setupWordAvailabilityChecker() {
+        // Limpa qualquer intervalo existente
+        if (this.wordCheckInterval) {
+            clearInterval(this.wordCheckInterval);
+        }
+
+        // Verifica a disponibilidade de palavras a cada 10 segundos
+        this.wordCheckInterval = setInterval(() => {
+            const gameBoard = document.querySelector('.game-board');
+            if (!gameBoard || gameBoard.children.length === 0) return;
+            if (this.isShuffling) return;
+
+            // Delega a decisão de embaralhar para checkAvailableWords
+            this.checkAvailableWords();
+        }, 10000);
     }
 
     setupClearButton() {
         const gameHeader = document.querySelector('.game-header');
+
+        // Evita duplicar botão de limpar
+        if (document.getElementById('clear-button')) return;
+
         const clearButton = document.createElement('button');
         clearButton.id = 'clear-button';
         clearButton.className = 'clear-button';
-        clearButton.innerHTML = '🧹 Clear';
+        clearButton.innerHTML = '🧹 Limpar';
         
         clearButton.addEventListener('click', () => {
             // Limpa todas as seleções
@@ -1249,17 +1430,20 @@ class WordGame {
 
     setupGameControls() {
         const gameHeader = document.querySelector('.game-header');
+
+        // Evita recriar se já existem controles
+        if (document.getElementById('home-button')) return;
         
         // Botão Home
         const homeButton = document.createElement('button');
         homeButton.id = 'home-button';
         homeButton.className = 'control-button home-button';
-        homeButton.innerHTML = '🏠 Home';
+        homeButton.innerHTML = '🏠 Início';
         
         homeButton.addEventListener('click', () => {
             this.showConfirmModal(
-                '🏠 Return to Home',
-                'Do you want to save your progress before returning to home screen?',
+                '🏠 Voltar para o Início',
+                'Você deseja salvar o progresso antes de voltar para a tela inicial?',
                 () => {
                     // Se confirmar, salva e volta
                     this.saveGame();
@@ -1268,8 +1452,8 @@ class WordGame {
                 () => {
                     // Se cancelar, mostra segunda confirmação
                     this.showConfirmModal(
-                        '⚠️ Unsaved Progress',
-                        'Are you sure you want to leave without saving? All unsaved progress will be lost!',
+                        '⚠️ Progresso Não Salvo',
+                        'Você tem certeza que deseja sair sem salvar? Todo o progresso não salvo será perdido!',
                         () => {
                             // Se confirmar que quer sair sem salvar
                             this.goToHome();
@@ -1283,7 +1467,7 @@ class WordGame {
         const saveButton = document.createElement('button');
         saveButton.id = 'save-button';
         saveButton.className = 'control-button save-button';
-        saveButton.innerHTML = '💾 Save';
+        saveButton.innerHTML = '💾 Salvar';
         
         saveButton.addEventListener('click', () => {
             this.saveGame();
@@ -1293,12 +1477,12 @@ class WordGame {
         const resetButton = document.createElement('button');
         resetButton.id = 'reset-button';
         resetButton.className = 'control-button reset-button';
-        resetButton.innerHTML = '🔄 Reset';
+        resetButton.innerHTML = '🔄 Reiniciar';
         
         resetButton.addEventListener('click', () => {
             this.showConfirmModal(
-                '🔄 Reset Level',
-                'Are you sure you want to reset this level? All progress in this level will be lost!',
+                '🔄 Reiniciar Nível',
+                'Você tem certeza que deseja reiniciar este nível? Todo o progresso neste nível será perdido!',
                 () => {
                     this.resetLevel();
                 }
@@ -1320,7 +1504,7 @@ class WordGame {
         };
         
         localStorage.setItem('wordGameSave', JSON.stringify(gameState));
-        this.showMessageModal('💾 Game Saved', 'Your progress has been saved successfully!');
+        this.showMessageModal('✅ Jogo Salvo', 'Seu progresso foi salvo com sucesso!');
     }
 
     resetLevel() {
@@ -1330,7 +1514,7 @@ class WordGame {
             item.classList.remove('found');
         });
         this.createBoard();
-        this.showMessageModal('✅ Success', 'Level has been reset!');
+        this.showMessageModal('✅ Sucesso', 'Nível reiniciado com sucesso!');
     }
 
     loadGame() {
@@ -1341,7 +1525,6 @@ class WordGame {
             this.selectedTiles = [];
             this.boardSize = 6;
             this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
-            this.wordsPerLevel = 5;
             this.levels = this.createLevels();
 
             // Carregar o estado salvo
@@ -1350,6 +1533,7 @@ class WordGame {
             this.score = gameState.score;
             this.hintsRemaining = gameState.hintsRemaining;
             this.wordsFound = gameState.foundWords.length;
+            this.wordsPerLevel = this.levels[this.currentLevel].length;
             
             // Inicializar a interface do jogo
             this.init();
@@ -1377,8 +1561,8 @@ class WordGame {
                     <p>${message}</p>
                 </div>
                 <div class="modal-buttons">
-                    <button class="confirm-button">Yes ✔️</button>
-                    <button class="cancel-button">No ❌</button>
+                    <button class="confirm-button">Sim ✔️</button>
+                    <button class="cancel-button">Não ❌</button>
                 </div>
             </div>
         `;
