@@ -472,6 +472,15 @@ h1 {
     filter: drop-shadow(0 4px 6px rgba(255, 105, 180, 0.35));
 }
 
+.secret-heart.pulse {
+    animation: pulse-quick 0.3s ease;
+}
+
+@keyframes pulse-quick {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
 .emoji-flower {
     animation: gentle-float 3s ease-in-out infinite;
 }
@@ -1294,6 +1303,12 @@ h1 {
         font-size: 16px;
         padding: 12px 25px;
     }
+    .home-credits-button {
+        top: 50px;
+        right: 16px;
+        padding: 8px 14px;
+        font-size: 16px;
+    }
 }
 
 .modal-buttons {
@@ -1448,20 +1463,15 @@ h1 {
 
 .home-credits-button {
     position: absolute;
-    top: 20px;
+    top: 60px;
     right: 20px;
-    background: linear-gradient(45deg, #ff69b4, #ff85c2);
-    color: white;
     border: none;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    font-size: 20px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 18px;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
-    opacity: 0;
-    transition: opacity 0.5s ease;
     z-index: 10;
 }
 

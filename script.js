@@ -107,6 +107,11 @@ class WordGame {
         title.innerHTML = `<span class="emoji emoji-flower">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji emoji-heart secret-heart">💝</span> <span class="emoji emoji-flower">🌸</span>`;
 
         document.querySelector('.secret-heart').addEventListener('click', () => {
+            const heart = document.querySelector('.secret-heart');
+            if (heart) {
+                heart.classList.add('pulse');
+                setTimeout(() => heart.classList.remove('pulse'), 300);
+            }
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('game-container').style.display = 'block';
             
@@ -115,7 +120,7 @@ class WordGame {
             this.selectedTiles = [];
             this.score = 0;
             this.boardSize = 6;
-            this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
+            this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
             this.currentLevel = 15; // Último nível
             this.levels = this.createLevels();
             this.wordsPerLevel = this.levels[this.currentLevel].length;
@@ -136,7 +141,7 @@ class WordGame {
         this.selectedTiles = [];
         this.score = 0;
         this.boardSize = 6;
-        this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
+        this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
         this.currentLevel = 1;
         this.levels = this.createLevels();
         this.wordsPerLevel = this.levels[this.currentLevel].length;
@@ -163,6 +168,13 @@ class WordGame {
         this.sounds.levelUp.volume = 0.5;
         this.sounds.easterEgg.volume = 0.5;
         this.sounds.background.volume = 0.2; // Diminuído volume da música
+
+        // Preload para reduzir latência
+        this.sounds.select.preload = 'auto';
+        this.sounds.success.preload = 'auto';
+        this.sounds.levelUp.preload = 'auto';
+        this.sounds.easterEgg.preload = 'auto';
+        this.sounds.background.preload = 'auto';
 
         // Configurar música de fundo
         this.sounds.background.loop = true;
@@ -239,7 +251,7 @@ class WordGame {
             12: ['PESO', 'BARRA', 'SUPINO', 'ROSCA', 'REMADA', 'BICEPS'],
             13: ['AULA', 'LIVRO', 'LAPIS', 'PAPEL', 'CANETA', 'MESA'],
             14: ['PAI', 'MÃE', 'IRMÃ', 'CASA', 'AMOR', 'FELIZ'],
-            15: ['CAROL', 'ACEITA', 'NAMORAR', 'COMIGO']
+            15: ['CAROL', 'ACEITA', 'NAMORA', 'COMIGO']
         };
     }
 
@@ -346,9 +358,6 @@ class WordGame {
             attempts++;
             if (attempts < maxAttempts) {
                 this.showShuffleMessage();
-                // Pequeno atraso para não travar o navegador
-                const start = Date.now();
-                while (Date.now() - start < 300) { /* espera 300ms */ }
             }
         }
 
@@ -356,9 +365,11 @@ class WordGame {
         if (bestBoard) {
             console.log(`Usando melhor tabuleiro encontrado (${bestWordCount} de ${this.wordsPerLevel} palavras)`);
             this.renderBoard(bestBoard);
+            this.shuffleBoard();
         } else {
             console.log("Usando tabuleiro de emergência");
             this.renderBoard(this.createEmergencyBoard());
+            this.shuffleBoard();
         }
     }
     
@@ -646,6 +657,7 @@ class WordGame {
         const levelInfo = document.querySelector('.level-info') || document.createElement('div');
         levelInfo.className = 'level-info';
         levelInfo.innerHTML = `Nível ${this.currentLevel} - Palavras encontradas: ${this.wordsFound}/${this.wordsPerLevel}`;
+        levelInfo.setAttribute('aria-live', 'polite');
         
         if (!document.querySelector('.level-info')) {
             document.querySelector('.game-header').appendChild(levelInfo);
@@ -878,7 +890,7 @@ class WordGame {
                                 <p>Não escrevo isso pra te pressionar, escrevo porque quero ser honesto. Eu gostaria de tentar algo a mais com você. Namorar, cuidar, estar presente. Se for pra continuar só como amigos, eu respeito — mas precisava te dizer que meu sentimento é amor.</p>
                                 <p class="signature">Com carinho, verdade e coragem,<br>Raphael 💙✨</p>
                             </div>
-                            <button class="home-credits-button" style="opacity: 0">🏠</button>
+                            <button class="home-credits-button home-button">🏠</button>
                         </div>
                     </div>
                 `;
@@ -886,15 +898,12 @@ class WordGame {
                 document.body.appendChild(creditsModal);
                 setTimeout(() => creditsModal.classList.add('show'), 100);
 
-                // Mostrar o botão home após a animação dos créditos
-                setTimeout(() => {
-                    const homeButton = creditsModal.querySelector('.home-credits-button');
-                    homeButton.style.opacity = '1';
-                    homeButton.addEventListener('click', () => {
-                        creditsModal.remove();
-                        this.goToHome();
-                    });
-                }, 12000); // Aparece após 12 segundos (quando a animação está quase no fim)
+                // Botão Home visível imediatamente, ao lado da mensagem
+                const homeButton = creditsModal.querySelector('.home-credits-button');
+                homeButton.addEventListener('click', () => {
+                    creditsModal.remove();
+                    this.goToHome();
+                });
             };
 
             modal.querySelector('.yes-button').addEventListener('click', () => {
@@ -916,7 +925,7 @@ class WordGame {
                 document.body.appendChild(messageModal);
                 setTimeout(() => messageModal.classList.add('show'), 100);
 
-                messageModal.querySelector('button').addEventListener('click', () => {
+                messageModal.querySelector('.next-level-button').addEventListener('click', () => {
                     messageModal.remove();
                     showCredits();
                 });
@@ -941,7 +950,7 @@ class WordGame {
                 document.body.appendChild(messageModal);
                 setTimeout(() => messageModal.classList.add('show'), 100);
 
-                messageModal.querySelector('button').addEventListener('click', () => {
+                messageModal.querySelector('.next-level-button').addEventListener('click', () => {
                     messageModal.remove();
                     showCredits();
                 });
@@ -952,7 +961,9 @@ class WordGame {
     }
 
     updateScore() {
-        document.getElementById('score').textContent = this.score;
+        const el = document.getElementById('score');
+        el.textContent = this.score;
+        el.setAttribute('aria-live', 'polite');
     }
 
     setupHintButton() {
@@ -984,13 +995,16 @@ class WordGame {
             return !wordElement.classList.contains('found');
         });
 
-        if (remainingWords.length === 0) {
+        // Evita escolher palavras maiores que o tabuleiro
+        const candidateWords = remainingWords.filter(w => typeof w === 'string' && w.length <= this.boardSize);
+
+        if (candidateWords.length === 0) {
             alert('Você encontrou todas as palavras neste nível! 🎉');
             return;
         }
 
-        // Escolhe uma palavra aleatória das restantes
-        const randomWord = remainingWords[Math.floor(Math.random() * remainingWords.length)];
+        // Escolhe uma palavra aleatória das restantes e compatíveis
+        const randomWord = candidateWords[Math.floor(Math.random() * candidateWords.length)];
         
         // Procura a palavra no tabuleiro
         let found = false;
@@ -1226,6 +1240,7 @@ class WordGame {
         modal.querySelector('.maybe-button').addEventListener('click', () => {
             this.showTryAgainMessage();
         });
+        
 
         setTimeout(() => modal.classList.add('show'), 100);
     }
@@ -1395,7 +1410,7 @@ class WordGame {
             clearInterval(this.wordCheckInterval);
         }
 
-        // Verifica a disponibilidade de palavras a cada 10 segundos
+        // Verifica a disponibilidade de palavras a cada 5 segundos
         this.wordCheckInterval = setInterval(() => {
             const gameBoard = document.querySelector('.game-board');
             if (!gameBoard || gameBoard.children.length === 0) return;
@@ -1403,7 +1418,7 @@ class WordGame {
 
             // Delega a decisão de embaralhar para checkAvailableWords
             this.checkAvailableWords();
-        }, 10000);
+        }, 5000);
     }
 
     setupClearButton() {
@@ -1524,7 +1539,7 @@ class WordGame {
             this.board = [];
             this.selectedTiles = [];
             this.boardSize = 6;
-            this.letters = 'AEIOUÁÉÍÓÚBCDFGHJKLMNPQRSTVWXYZ';
+            this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
             this.levels = this.createLevels();
 
             // Carregar o estado salvo
@@ -1608,6 +1623,10 @@ class WordGame {
     goToHome() {
         document.getElementById('game-container').style.display = 'none';
         document.getElementById('start-screen').style.display = 'flex';
+        if (this.wordCheckInterval) {
+            clearInterval(this.wordCheckInterval);
+        }
+        this.isShuffling = false;
     }
 }
 
