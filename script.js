@@ -1515,7 +1515,7 @@ class WordGame {
             level: this.currentLevel,
             score: this.score,
             hintsRemaining: this.hintsRemaining,
-            foundWords: Array.from(document.querySelectorAll('.word-item.found')).map(el => el.dataset.word)
+            foundWords: Array.from(document.querySelectorAll('.word-list li.found')).map(el => el.dataset.word)
         };
         
         localStorage.setItem('wordGameSave', JSON.stringify(gameState));
@@ -1525,7 +1525,7 @@ class WordGame {
     resetLevel() {
         this.wordsFound = 0;
         this.updateLevelInfo();
-        document.querySelectorAll('.word-item').forEach(item => {
+        document.querySelectorAll('.word-list li').forEach(item => {
             item.classList.remove('found');
         });
         this.createBoard();
@@ -1627,6 +1627,49 @@ class WordGame {
             clearInterval(this.wordCheckInterval);
         }
         this.isShuffling = false;
+        
+        // Atualiza visibilidade do botão "Continuar Jogo" conforme existência de save
+        const continueButton = document.getElementById('continue-game');
+        const savedGame = localStorage.getItem('wordGameSave');
+        if (continueButton) {
+            continueButton.style.display = savedGame ? 'block' : 'none';
+            if (savedGame) {
+                continueButton.onclick = () => {
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
+                    this.loadGame();
+                };
+            } else {
+                continueButton.onclick = null;
+            }
+        }
+        
+        // Garante presença do botão "Zerar Progresso" na tela inicial quando houver save
+        if (savedGame && !document.getElementById('reset-all-button')) {
+            const resetAllButton = document.createElement('button');
+            resetAllButton.id = 'reset-all-button';
+            resetAllButton.className = 'reset-all-button';
+            resetAllButton.innerHTML = '🗑️ Zerar Progresso';
+            
+            resetAllButton.addEventListener('click', () => {
+                this.showConfirmModal(
+                    '🚨 Reset All Progress',
+                    'Você tem certeza que deseja resetar todo o progresso? Isso não pode ser desfeito!',
+                    () => {
+                        localStorage.removeItem('wordGameSave');
+                        const continueBtn = document.getElementById('continue-game');
+                        if (continueBtn) continueBtn.style.display = 'none';
+                        resetAllButton.remove();
+                        this.showMessageModal('✅ Progresso Resetado', 'Todo o progresso foi resetado com sucesso!');
+                    }
+                );
+            });
+            
+            const startButtons = document.querySelector('.start-buttons');
+            if (startButtons) {
+                startButtons.appendChild(resetAllButton);
+            }
+        }
     }
 }
 
