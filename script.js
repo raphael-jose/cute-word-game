@@ -1,10 +1,17 @@
 class WordGame {
     constructor() {
-        // Iniciar música de fundo imediatamente
         this.setupSounds();
-        this.sounds.background.play().catch(error => {
-            console.log('Erro ao tocar música:', error);
-        });
+        const savedSound = localStorage.getItem('wordGameSound') || 'on';
+        if (savedSound === 'on') {
+            this.sounds.background.play().catch(error => {
+                console.log('Erro ao tocar música:', error);
+            });
+        } else {
+            try { this.sounds.background.pause(); } catch {}
+        }
+        
+        // Inicializa banco IndexedDB (fallback automático se não disponível)
+        this.initDatabase().catch(() => {});
         
         // Verifica se existe jogo salvo antes de configurar a tela inicial
         const savedGame = localStorage.getItem('wordGameSave');
@@ -18,9 +25,27 @@ class WordGame {
         
         // Inicializa variáveis de controle
         this.isShuffling = false; // Controla se está ocorrendo um embaralhamento
+        this.achievements = new Set();
+        this.stats = { levels: {} };
         
         this.setupStartScreen();
         this.setupTutorial();
+        this.setupHamburgerMenu();
+        this.autoLoadIfAvailable();
+        this.renderEmojis(document.body);
+    }
+    
+    renderEmojis(root = document.body) {
+        try {
+            if (window.twemoji && root) {
+                twemoji.parse(root, {
+                    base: 'https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/',
+                    ext: '.png',
+                    size: '72x72',
+                    className: 'emoji'
+                });
+            }
+        } catch {}
     }
 
     setupTutorial() {
@@ -63,14 +88,57 @@ class WordGame {
         const startButton = document.getElementById('start-game');
         const continueButton = document.getElementById('continue-game');
         const resetAllButton = document.createElement('button');
+        const levelSelect = document.getElementById('level-select');
+        const buttonsWrap = document.querySelector('.start-buttons');
+        
+        // Preenche seletor com último nível salvo se existir
+        const savedLocal = localStorage.getItem('wordGameSave');
+        if (savedLocal && levelSelect) {
+            try {
+                const s = JSON.parse(savedLocal);
+                if (s && s.level && s.level >= 1 && s.level <= 9) {
+                    levelSelect.value = String(s.level);
+                }
+            } catch {}
+        }
+        // Tenta recuperar também do IndexedDB
+        this.initDatabase().then(() => {
+            this.loadStateFromDB().then(state => {
+                if (state && levelSelect) {
+                    levelSelect.value = String(state.level);
+                }
+            }).catch(() => {});
+        }).catch(() => {});
         
         // Adiciona botão de Reset All
         resetAllButton.id = 'reset-all-button';
         resetAllButton.className = 'reset-all-button';
         resetAllButton.innerHTML = '🗑️ Zerar Progresso';
         
-        startButton.addEventListener('click', () => {
-            this.startGame();
+        startButton.addEventListener('click', async () => {
+            let selectedLevel = 1;
+            if (levelSelect && levelSelect.value) {
+                const val = levelSelect.value;
+                const isValidOption = Array.from(levelSelect.options).some(opt => opt.value === val);
+                if (isValidOption) {
+                    selectedLevel = parseInt(val, 10);
+                } else {
+                    // valor fora das opções visíveis: trata como Auto
+                    levelSelect.value = '';
+                }
+            } else {
+                // Se não selecionou nível, tenta usar o último salvo
+                const savedGame = localStorage.getItem('wordGameSave');
+                if (savedGame) {
+                    try {
+                        const gs = JSON.parse(savedGame);
+                        if (gs && typeof gs.level === 'number') {
+                            selectedLevel = gs.level;
+                        }
+                    } catch {}
+                }
+            }
+            this.startGame(selectedLevel);
         });
         
         resetAllButton.addEventListener('click', () => {
@@ -102,9 +170,13 @@ class WordGame {
             continueButton.style.display = 'none';
         }
 
+        // controles flutuantes já são criados globalmente:
+        // theme-button na esquerda, sound-button na direita
+
         // Moderniza e alinha os emojis do título da tela inicial
         const title = document.querySelector('h1');
-        title.innerHTML = `<span class="emoji emoji-flower">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji emoji-heart secret-heart">💝</span> <span class="emoji emoji-flower">🌸</span>`;
+        title.innerHTML = `<span class="emoji">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji secret-heart">💝</span> <span class="emoji">🌸</span>`;
+        this.renderEmojis(document.querySelector('.start-content'));
 
         document.querySelector('.secret-heart').addEventListener('click', () => {
             const heart = document.querySelector('.secret-heart');
@@ -128,11 +200,11 @@ class WordGame {
             this.hintsRemaining = 50;
             
             this.init();
-            this.setupSoundControls();
+            this.setupHamburgerMenu();
         });
     }
 
-    startGame() {
+    startGame(level = 1) {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('game-container').style.display = 'block';
         
@@ -142,14 +214,17 @@ class WordGame {
         this.score = 0;
         this.boardSize = 6;
         this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
-        this.currentLevel = 1;
+        this.currentLevel = level;
         this.levels = this.createLevels();
         this.wordsPerLevel = this.levels[this.currentLevel].length;
         this.wordsFound = 0;
         this.hintsRemaining = 50;
+        this.levelStartTime = Date.now();
+        this.hintsUsedThisLevel = 0;
+        this.wordsFoundThisLevel = 0;
         
         this.init();
-        this.setupSoundControls();
+        this.setupHamburgerMenu();
     }
 
     setupSounds() {
@@ -181,9 +256,12 @@ class WordGame {
         
         // Iniciar música automaticamente
         const startBackgroundMusic = () => {
-            this.sounds.background.play().catch(error => {
-                console.log('Erro ao tocar música:', error);
-            });
+            const savedSound = localStorage.getItem('wordGameSound') || 'on';
+            if (savedSound === 'on') {
+                this.sounds.background.play().catch(error => {
+                    console.log('Erro ao tocar música:', error);
+                });
+            }
         };
 
         // Tentar iniciar a música quando houver qualquer interação
@@ -192,42 +270,87 @@ class WordGame {
     }
 
     setupSoundControls() {
-        // Evita criar botão de som duplicado
         if (document.querySelector('.sound-button')) return;
-
+        if (document.querySelector('.hamburger-button')) return;
         const soundButton = document.createElement('button');
         soundButton.className = 'sound-button';
-        soundButton.innerHTML = '🔊'; // Começa mostrando que tem som
-        
-        let isPlaying = true; // Começa tocando
-
+        const savedSound = localStorage.getItem('wordGameSound') || 'on';
+        const isPlaying = savedSound === 'on' && !this.sounds.background.paused;
+        soundButton.innerHTML = isPlaying ? '🔊' : '🔈';
+        if (isPlaying) soundButton.classList.add('playing');
         const toggleMusic = () => {
             try {
-                if (!isPlaying) {
+                if (this.sounds.background.paused) {
                     this.sounds.background.play();
                     soundButton.innerHTML = '🔊';
                     soundButton.classList.add('playing');
-                    isPlaying = true;
+                    localStorage.setItem('wordGameSound', 'on');
                 } else {
                     this.sounds.background.pause();
                     soundButton.innerHTML = '🔈';
                     soundButton.classList.remove('playing');
-                    isPlaying = false;
+                    localStorage.setItem('wordGameSound', 'off');
                 }
             } catch (error) {
                 console.log('Erro ao controlar música:', error);
             }
         };
-
         soundButton.addEventListener('click', toggleMusic);
-        document.querySelector('.game-header').appendChild(soundButton);
+        document.body.appendChild(soundButton);
     }
 
-    // ===== CHECKPOINT - VERSÃO ESTÁVEL - 10/12/2025 =====
-    // Esta versão tem o sistema de embaralhamento funcionando corretamente
-    // e as palavras estão sendo colocadas no tabuleiro de forma adequada.
-    // Se problemas futuros surgirem, podemos voltar a este ponto.
-    // ====================================================
+    setupHamburgerMenu() {
+        if (document.querySelector('.hamburger-button')) return;
+        const savedTheme = localStorage.getItem('wordGameTheme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+        const savedSound = localStorage.getItem('wordGameSound') || 'on';
+        const button = document.createElement('button');
+        button.className = 'hamburger-button';
+        button.innerHTML = '☰';
+        const panel = document.createElement('div');
+        panel.className = 'hamburger-panel';
+        const themeLabel = document.body.classList.contains('dark-mode') ? '☀️ Claro' : '🌙 Escuro';
+        const soundLabel = savedSound === 'on' ? '🔊 Música' : '🔈 Música';
+        panel.innerHTML = `
+            <button class="menu-item theme-toggle">${themeLabel}</button>
+            <button class="menu-item sound-toggle">${soundLabel}</button>
+        `;
+        button.addEventListener('click', () => {
+            panel.classList.toggle('show');
+        });
+        document.addEventListener('click', (e) => {
+            if (!panel.contains(e.target) && !button.contains(e.target)) {
+                panel.classList.remove('show');
+            }
+        });
+        panel.querySelector('.theme-toggle').addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('wordGameTheme', isDark ? 'dark' : 'light');
+            panel.querySelector('.theme-toggle').textContent = isDark ? '☀️ Claro' : '🌙 Escuro';
+        });
+        panel.querySelector('.sound-toggle').addEventListener('click', () => {
+            try {
+                if (this.sounds.background.paused) {
+                    this.sounds.background.play();
+                    localStorage.setItem('wordGameSound', 'on');
+                    panel.querySelector('.sound-toggle').textContent = '🔊 Música';
+                } else {
+                    this.sounds.background.pause();
+                    localStorage.setItem('wordGameSound', 'off');
+                    panel.querySelector('.sound-toggle').textContent = '🔈 Música';
+                }
+            } catch {}
+        });
+        document.body.appendChild(button);
+        document.body.appendChild(panel);
+    }
+
+    // ===== CHECKPOINT - VERSÃO ESTÁVEL - 19/12/2025 =====
+    // Auto-carregamento, Modo Escuro, Estatísticas e Conquistas
+    // Embaralhamento automático quando não há opções válidas
+    // ==========================================================
     
     createLevels() {
         // Easter Eggs separados
@@ -269,7 +392,8 @@ class WordGame {
         // Moderniza e alinha os emojis do título do jogo
         const gameHeaderTitle = document.querySelector('.game-header h1');
         if (gameHeaderTitle) {
-            gameHeaderTitle.innerHTML = `<span class="emoji emoji-flower">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji emoji-flower">🌸</span>`;
+            gameHeaderTitle.innerHTML = `<span class="emoji">🌸</span> <span class="title-text">Jogo do Jacaré Fofo</span> <span class="emoji">🌸</span>`;
+            this.renderEmojis(document.querySelector('.game-header'));
         }
     }
 
@@ -345,6 +469,7 @@ class WordGame {
                 // Se conseguiu colocar todas as palavras, usa este tabuleiro
                 if (allWordsPlaced) {
                     this.renderBoard(board);
+                    this.checkAvailableWords();
                     return;
                 }
                 
@@ -366,10 +491,12 @@ class WordGame {
             console.log(`Usando melhor tabuleiro encontrado (${bestWordCount} de ${this.wordsPerLevel} palavras)`);
             this.renderBoard(bestBoard);
             this.shuffleBoard();
+            this.checkAvailableWords();
         } else {
             console.log("Usando tabuleiro de emergência");
             this.renderBoard(this.createEmergencyBoard());
             this.shuffleBoard();
+            this.checkAvailableWords();
         }
     }
     
@@ -703,6 +830,7 @@ class WordGame {
                     this.sounds.success.play();
                     wordElement.classList.add('found');
                     this.wordsFound++;
+                    this.wordsFoundThisLevel = (this.wordsFoundThisLevel || 0) + 1;
                     this.score += currentWord.length * 10;
                     this.updateScore();
                     this.updateLevelInfo();
@@ -815,6 +943,7 @@ class WordGame {
                 this.sounds.success.play();
                 wordElement.classList.add('found');
                 this.wordsFound++;
+                this.wordsFoundThisLevel = (this.wordsFoundThisLevel || 0) + 1;
                 this.score += word.length * 10;
                 this.updateScore();
                 this.updateLevelInfo();
@@ -855,106 +984,7 @@ class WordGame {
 
     nextLevel() {
         if (this.currentLevel === 15) {
-            // Modal especial de proposta
-            const modal = document.createElement('div');
-            modal.className = 'level-modal proposal-modal';
-            modal.innerHTML = `
-                <div class="level-modal-content">
-                    <div class="level-modal-header">
-                        <h2>💝 Momento Especial 💝</h2>
-                    </div>
-                    <div class="level-modal-body">
-                        <div class="proposal-animation">💍</div>
-                        <p class="proposal-message">Você quer se casar comigo?</p>
-                    </div>
-                    <div class="proposal-buttons">
-                        <button class="yes-button">Sim! 💖</button>
-                        <button class="maybe-button">Talvez... 🤔</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-            setTimeout(() => modal.classList.add('show'), 100);
-
-            const showCredits = () => {
-                const creditsModal = document.createElement('div');
-                creditsModal.className = 'level-modal credits-modal';
-                creditsModal.innerHTML = `
-                    <div class="level-modal-content">
-                        <div class="level-modal-body">
-                            <div class="credits-scroll">
-                                <h2>Para Carol 💖</h2>
-                                <p>Desde o primeiro "oi" até as conversas que sempre acabam em risada, você virou parte dos meus dias sem pedir licença. Este jogo é só um detalhe perto do que eu sinto, mas cada palavra aqui carrega algo verdadeiro: o carinho, a amizade e esse sentimento que cresceu quietinho.</p>
-                                <p>A gente brinca, zoa — eu até te chamo de jacaré (mesmo sabendo que você não gosta 😅) — mas, no meio disso tudo, eu percebi que não é só amizade. Eu gosto de você de um jeito diferente, mais profundo, mais calmo… mais real.</p>
-                                <p>Não escrevo isso pra te pressionar, escrevo porque quero ser honesto. Eu gostaria de tentar algo a mais com você. Namorar, cuidar, estar presente. Se for pra continuar só como amigos, eu respeito — mas precisava te dizer que meu sentimento é amor.</p>
-                                <p class="signature">Com carinho, verdade e coragem,<br>Raphael 💙✨</p>
-                            </div>
-                            <button class="home-credits-button home-button">🏠</button>
-                        </div>
-                    </div>
-                `;
-
-                document.body.appendChild(creditsModal);
-                setTimeout(() => creditsModal.classList.add('show'), 100);
-
-                // Botão Home visível imediatamente, ao lado da mensagem
-                const homeButton = creditsModal.querySelector('.home-credits-button');
-                homeButton.addEventListener('click', () => {
-                    creditsModal.remove();
-                    this.goToHome();
-                });
-            };
-
-            modal.querySelector('.yes-button').addEventListener('click', () => {
-                const messageModal = document.createElement('div');
-                messageModal.className = 'level-modal message-modal';
-                messageModal.innerHTML = `
-                    <div class="level-modal-content">
-                        <div class="level-modal-header">
-                            <h2>💝 Perfeito!</h2>
-                        </div>
-                        <div class="level-modal-body">
-                            <p>Eu te amo! 💑</p>
-                        </div>
-                        <button class="next-level-button">OK 👍</button>
-                    </div>
-                `;
-
-                modal.remove();
-                document.body.appendChild(messageModal);
-                setTimeout(() => messageModal.classList.add('show'), 100);
-
-                messageModal.querySelector('.next-level-button').addEventListener('click', () => {
-                    messageModal.remove();
-                    showCredits();
-                });
-            });
-
-            modal.querySelector('.maybe-button').addEventListener('click', () => {
-                const messageModal = document.createElement('div');
-                messageModal.className = 'level-modal message-modal';
-                messageModal.innerHTML = `
-                    <div class="level-modal-content">
-                        <div class="level-modal-header">
-                            <h2>😊 Sem pressa!</h2>
-                        </div>
-                        <div class="level-modal-body">
-                            <p>Leve seu tempo! 💕</p>
-                        </div>
-                        <button class="next-level-button">OK 👍</button>
-                    </div>
-                `;
-
-                modal.remove();
-                document.body.appendChild(messageModal);
-                setTimeout(() => messageModal.classList.add('show'), 100);
-
-                messageModal.querySelector('.next-level-button').addEventListener('click', () => {
-                    messageModal.remove();
-                    showCredits();
-                });
-            });
+            this.showGameCompleteModal();
         } else {
             this.showLevelCompleteModal();
         }
@@ -987,6 +1017,8 @@ class WordGame {
             alert('Não há mais dicas disponíveis! 🌸');
             return;
         }
+        
+        this.hintsUsedThisLevel = (this.hintsUsedThisLevel || 0) + 1;
 
         // Pega todas as palavras que ainda não foram encontradas
         const words = this.levels[this.currentLevel];
@@ -1140,6 +1172,61 @@ class WordGame {
             setTimeout(() => this.actuallyShuffle(), 500);
         }
     }
+    
+    showStatsModal() {
+        const modal = document.createElement('div');
+        modal.className = 'level-modal stats-modal';
+        const achievementsList = Array.from(this.achievements || []);
+        const levels = this.stats && this.stats.levels ? this.stats.levels : {};
+        const rows = Object.keys(levels).sort((a,b)=>Number(a)-Number(b)).map(l => {
+            const st = levels[l];
+            const time = st ? Math.round((st.timeMs || 0)/1000) : 0;
+            const hints = st ? st.hintsUsed || 0 : 0;
+            const words = st ? st.wordsFound || 0 : 0;
+            return `<tr><td>${l}</td><td>${time}s</td><td>${hints}</td><td>${words}</td></tr>`;
+        }).join('');
+        modal.innerHTML = `
+            <div class="level-modal-content">
+                <div class="level-modal-header">
+                    <h2>📈 Estatísticas</h2>
+                </div>
+                <div class="level-modal-body">
+                    <div class="level-stats">
+                        <div class="stat"><span class="stat-label">Conquistas:</span><span class="stat-value">${achievementsList.join(', ') || '—'}</span></div>
+                    </div>
+                    <table style="width:100%; color:#ff69b4;">
+                        <thead><tr><th>Nível</th><th>Tempo</th><th>Dicas</th><th>Palavras</th></tr></thead>
+                        <tbody>${rows || ''}</tbody>
+                    </table>
+                </div>
+                <button class="next-level-button">Fechar</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        setTimeout(()=>modal.classList.add('show'),100);
+        modal.querySelector('.next-level-button').addEventListener('click', ()=> modal.remove());
+    }
+    
+    showAchievementsModal() {
+        const modal = document.createElement('div');
+        modal.className = 'level-modal achievements-modal';
+        const achievementsList = Array.from(this.achievements || []);
+        const items = achievementsList.map(a => `<li>${a}</li>`).join('');
+        modal.innerHTML = `
+            <div class="level-modal-content">
+                <div class="level-modal-header">
+                    <h2>🏆 Conquistas</h2>
+                </div>
+                <div class="level-modal-body">
+                    <ul style="list-style:none; padding:0; color:#ff69b4;">${items || '<li>—</li>'}</ul>
+                </div>
+                <button class="next-level-button">Fechar</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        setTimeout(()=>modal.classList.add('show'),100);
+        modal.querySelector('.next-level-button').addEventListener('click', ()=> modal.remove());
+    }
 
     showLevelCompleteModal() {
         const modal = document.createElement('div');
@@ -1161,7 +1248,16 @@ class WordGame {
                             <span class="stat-label">Palavras Encontradas:</span>
                             <span class="stat-value">${this.wordsPerLevel}</span>
                         </div>
+                        <div class="stat">
+                            <span class="stat-label">Tempo:</span>
+                            <span class="stat-value">${Math.round(((Date.now() - (this.levelStartTime || Date.now()))/1000))}s</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Dicas usadas:</span>
+                            <span class="stat-value">${this.hintsUsedThisLevel || 0}</span>
+                        </div>
                     </div>
+                    <div class="completion-message"></div>
                 </div>
                 <button class="next-level-button">Próximo Nível 🚀</button>
             </div>
@@ -1172,6 +1268,24 @@ class WordGame {
         this.sounds.levelUp.play();
 
         modal.querySelector('.next-level-button').addEventListener('click', () => {
+            // Registrar estatísticas e conquistas do nível
+            const elapsedMs = Date.now() - (this.levelStartTime || Date.now());
+            this.stats.levels[this.currentLevel] = {
+                timeMs: elapsedMs,
+                hintsUsed: this.hintsUsedThisLevel || 0,
+                wordsFound: this.wordsPerLevel
+            };
+            if ((this.hintsUsedThisLevel || 0) === 0) {
+                this.achievements.add('Sem Dica');
+            }
+            if (elapsedMs <= 60000) {
+                this.achievements.add('Velocista');
+            }
+            // Reset contadores para próximo nível
+            this.levelStartTime = Date.now();
+            this.hintsUsedThisLevel = 0;
+            this.wordsFoundThisLevel = 0;
+            
             modal.remove();
             
             // Incrementa o nível antes de iniciar o próximo
@@ -1193,6 +1307,8 @@ class WordGame {
             this.createWordList();
             this.updateLevelInfo();
             this.createBoard();
+            // Verifica imediatamente se há opções válidas e embaralha se necessário
+            this.checkAvailableWords();
         });
 
         setTimeout(() => modal.classList.add('show'), 100);
@@ -1231,6 +1347,7 @@ class WordGame {
         `;
 
         document.body.appendChild(modal);
+        
         this.sounds.levelUp.play();
 
         modal.querySelector('.yes-button').addEventListener('click', () => {
@@ -1242,7 +1359,64 @@ class WordGame {
         });
         
 
-        setTimeout(() => modal.classList.add('show'), 100);
+        setTimeout(() => {
+            modal.classList.add('show');
+            this.renderEmojis(modal);
+        }, 100);
+    }
+
+    showFinalYesMessage() {
+        const prev = document.querySelector('.final-proposal');
+        if (prev) prev.remove();
+        const messageModal = document.createElement('div');
+        messageModal.className = 'level-modal message-modal';
+        messageModal.innerHTML = `
+            <div class="level-modal-content">
+                <div class="level-modal-header">
+                    <h2>💝 Perfeito!</h2>
+                </div>
+                <div class="level-modal-body">
+                    <p>Eu te amo! 💑</p>
+                </div>
+                <button class="next-level-button">OK 👍</button>
+            </div>
+        `;
+        document.body.appendChild(messageModal);
+        setTimeout(() => {
+            messageModal.classList.add('show');
+            this.renderEmojis(messageModal);
+        }, 100);
+        messageModal.querySelector('.next-level-button').addEventListener('click', () => {
+            messageModal.remove();
+            this.goToHome();
+        });
+    }
+
+    showTryAgainMessage() {
+        const prev = document.querySelector('.final-proposal');
+        if (prev) prev.remove();
+        const messageModal = document.createElement('div');
+        messageModal.className = 'level-modal message-modal';
+        messageModal.innerHTML = `
+            <div class="level-modal-content">
+                <div class="level-modal-header">
+                    <h2>😊 Sem pressa!</h2>
+                </div>
+                <div class="level-modal-body">
+                    <p>Leve seu tempo! 💕</p>
+                </div>
+                <button class="next-level-button">OK 👍</button>
+            </div>
+        `;
+        document.body.appendChild(messageModal);
+        setTimeout(() => {
+            messageModal.classList.add('show');
+            this.renderEmojis(messageModal);
+        }, 100);
+        messageModal.querySelector('.next-level-button').addEventListener('click', () => {
+            messageModal.remove();
+            this.goToHome();
+        });
     }
 
     showEasterEggModal(word) {
@@ -1508,6 +1682,25 @@ class WordGame {
         gameHeader.appendChild(homeButton);
         gameHeader.appendChild(saveButton);
         gameHeader.appendChild(resetButton);
+        
+        // Botão de Estatísticas
+        const statsButton = document.createElement('button');
+        statsButton.id = 'stats-button';
+        statsButton.className = 'control-button stats-button';
+        statsButton.innerHTML = '📈 Estatísticas';
+        statsButton.addEventListener('click', () => {
+            this.showStatsModal();
+        });
+        gameHeader.appendChild(statsButton);
+        
+        const achButton = document.createElement('button');
+        achButton.id = 'achievements-button';
+        achButton.className = 'control-button achievements-button';
+        achButton.innerHTML = '🏆 Conquistas';
+        achButton.addEventListener('click', () => {
+            this.showAchievementsModal();
+        });
+        gameHeader.appendChild(achButton);
     }
 
     saveGame() {
@@ -1515,10 +1708,15 @@ class WordGame {
             level: this.currentLevel,
             score: this.score,
             hintsRemaining: this.hintsRemaining,
-            foundWords: Array.from(document.querySelectorAll('.word-list li.found')).map(el => el.dataset.word)
+            foundWords: Array.from(document.querySelectorAll('.word-list li.found')).map(el => el.dataset.word),
+            achievements: Array.from(this.achievements || []),
+            stats: this.stats || { levels: {} }
         };
         
         localStorage.setItem('wordGameSave', JSON.stringify(gameState));
+        
+        // Salva também no IndexedDB para maior robustez
+        this.saveStateToDB(gameState).catch(() => {});
         this.showMessageModal('✅ Jogo Salvo', 'Seu progresso foi salvo com sucesso!');
     }
 
@@ -1533,8 +1731,7 @@ class WordGame {
     }
 
     loadGame() {
-        const savedGame = localStorage.getItem('wordGameSave');
-        if (savedGame) {
+        const proceedWithState = (gameState) => {
             // Inicializar primeiro as variáveis básicas do jogo
             this.board = [];
             this.selectedTiles = [];
@@ -1542,13 +1739,16 @@ class WordGame {
             this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
             this.levels = this.createLevels();
 
-            // Carregar o estado salvo
-            const gameState = JSON.parse(savedGame);
             this.currentLevel = gameState.level;
             this.score = gameState.score;
             this.hintsRemaining = gameState.hintsRemaining;
             this.wordsFound = gameState.foundWords.length;
             this.wordsPerLevel = this.levels[this.currentLevel].length;
+            this.achievements = new Set((gameState.achievements || []));
+            this.stats = gameState.stats || { levels: {} };
+            this.levelStartTime = Date.now();
+            this.hintsUsedThisLevel = 0;
+            this.wordsFoundThisLevel = this.wordsFound;
             
             // Inicializar a interface do jogo
             this.init();
@@ -1561,7 +1761,31 @@ class WordGame {
                     wordElement.classList.add('found');
                 }
             });
-        }
+        };
+        
+        // Primeiro tenta IndexedDB
+        this.initDatabase().then(() => {
+            this.loadStateFromDB().then(state => {
+                if (state) {
+                    proceedWithState(state);
+                    return;
+                }
+                const savedGame = localStorage.getItem('wordGameSave');
+                if (savedGame) {
+                    proceedWithState(JSON.parse(savedGame));
+                }
+            }).catch(() => {
+                const savedGame = localStorage.getItem('wordGameSave');
+                if (savedGame) {
+                    proceedWithState(JSON.parse(savedGame));
+                }
+            });
+        }).catch(() => {
+            const savedGame = localStorage.getItem('wordGameSave');
+            if (savedGame) {
+                proceedWithState(JSON.parse(savedGame));
+            }
+        });
     }
 
     showConfirmModal(title, message, onConfirm, onCancel = null) {
@@ -1583,7 +1807,10 @@ class WordGame {
         `;
 
         document.body.appendChild(modal);
-        setTimeout(() => modal.classList.add('show'), 100);
+        setTimeout(() => {
+            modal.classList.add('show');
+            this.renderEmojis(modal);
+        }, 100);
 
         modal.querySelector('.confirm-button').addEventListener('click', () => {
             onConfirm();
@@ -1612,7 +1839,10 @@ class WordGame {
         `;
 
         document.body.appendChild(modal);
-        setTimeout(() => modal.classList.add('show'), 100);
+        setTimeout(() => {
+            modal.classList.add('show');
+            this.renderEmojis(modal);
+        }, 100);
 
         modal.querySelector('button').addEventListener('click', () => {
             modal.remove();
@@ -1670,6 +1900,133 @@ class WordGame {
                 startButtons.appendChild(resetAllButton);
             }
         }
+    }
+    
+    setupThemeControls() {
+        if (document.getElementById('theme-button')) return;
+        if (document.querySelector('.hamburger-button')) return;
+        const btn = document.createElement('button');
+        btn.id = 'theme-button';
+        btn.className = 'theme-button';
+        const savedTheme = localStorage.getItem('wordGameTheme') || 'light';
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark-mode');
+        }
+        btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        btn.addEventListener('click', () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('wordGameTheme', isDark ? 'dark' : 'light');
+            btn.textContent = isDark ? '☀️' : '🌙';
+        });
+        document.body.appendChild(btn);
+    }
+    
+    autoLoadIfAvailable() {
+        this.initDatabase().then(() => {
+            this.loadStateFromDB().then(state => {
+                if (state) {
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
+                    this.board = [];
+                    this.selectedTiles = [];
+                    this.boardSize = 6;
+                    this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
+                    this.levels = this.createLevels();
+                    this.currentLevel = state.level;
+                    this.score = state.score;
+                    this.hintsRemaining = state.hintsRemaining;
+                    this.wordsFound = state.foundWords.length;
+                    this.wordsPerLevel = this.levels[this.currentLevel].length;
+                    this.init();
+                    this.setupHamburgerMenu();
+                    state.foundWords.forEach(word => {
+                        const wordElement = document.querySelector(`[data-word="${word}"]`);
+                        if (wordElement) {
+                            wordElement.classList.add('found');
+                        }
+                    });
+                    return;
+                }
+                const savedGame = localStorage.getItem('wordGameSave');
+                if (savedGame) {
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('game-container').style.display = 'block';
+                    const gameState = JSON.parse(savedGame);
+                    this.board = [];
+                    this.selectedTiles = [];
+                    this.boardSize = 6;
+                    this.letters = 'AEIOUÁÉÍÓÚÃÕÇBCDFGHJKLMNPQRSTVWXYZ';
+                    this.levels = this.createLevels();
+                    this.currentLevel = gameState.level;
+                    this.score = gameState.score;
+                    this.hintsRemaining = gameState.hintsRemaining;
+                    this.wordsFound = gameState.foundWords.length;
+                    this.wordsPerLevel = this.levels[this.currentLevel].length;
+                    this.init();
+                    this.setupHamburgerMenu();
+                    gameState.foundWords.forEach(word => {
+                        const wordElement = document.querySelector(`[data-word="${word}"]`);
+                        if (wordElement) {
+                            wordElement.classList.add('found');
+                        }
+                    });
+                }
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+    
+    // Persistência com IndexedDB
+    initDatabase() {
+        return new Promise((resolve, reject) => {
+            if (!window.indexedDB) {
+                resolve();
+                return;
+            }
+            const request = indexedDB.open('WordGameDB', 1);
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('gameState')) {
+                    db.createObjectStore('gameState', { keyPath: 'id' });
+                }
+            };
+            request.onsuccess = () => {
+                this.db = request.result;
+                resolve();
+            };
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+    
+    saveStateToDB(state) {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                resolve();
+                return;
+            }
+            const tx = this.db.transaction('gameState', 'readwrite');
+            const store = tx.objectStore('gameState');
+            store.put({ ...state, id: 'default', updatedAt: Date.now() });
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    
+    loadStateFromDB() {
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                resolve(null);
+                return;
+            }
+            const tx = this.db.transaction('gameState', 'readonly');
+            const store = tx.objectStore('gameState');
+            const req = store.get('default');
+            req.onsuccess = () => {
+                resolve(req.result || null);
+            };
+            req.onerror = () => reject(req.error);
+        });
     }
 }
 

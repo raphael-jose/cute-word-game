@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jogo de Palavras Fofinho</title>
-    <link rel="icon" type="image/png" href="./images/favicon.png">
-    <link rel="stylesheet" href="style.css">
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <title>Jogo de Palavras Fofinho</title>
+        <link rel="icon" type="image/png" href="./images/favicon.png">
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
+    </head>
 <body>
     <div id="start-screen" class="start-screen">
         <div class="start-content">
@@ -16,6 +17,22 @@
             </div>
             <p class="welcome-text">Bem-vindo ao jogo de palavras mais fofo!</p>
             <div class="start-buttons">
+                <div class="level-select-container">
+                    <label for="level-select">Selecionar Nível</label>
+                    <select id="level-select" class="level-select">
+                        <option value="">Auto (último progresso)</option>
+                        <option value="1">Nível 1</option>
+                        <option value="2">Nível 2</option>
+                        <option value="3">Nível 3</option>
+                        <option value="4">Nível 4</option>
+                        <option value="5">Nível 5</option>
+                        <option value="6">Nível 6</option>
+                        <option value="7">Nível 7</option>
+                        <option value="8">Nível 8</option>
+                        <option value="9">Nível 9</option>
+                        <!-- Removidos níveis 10 em diante conforme solicitado -->
+                    </select>
+                </div>
                 <button id="start-game" class="start-button">
                     Jogar Agora 💝
                 </button>
