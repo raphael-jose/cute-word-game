@@ -677,16 +677,19 @@ h1 {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: 4000;
+    pointer-events: none;
 }
 
 .level-modal.show {
+    display: flex;
     opacity: 1;
+    pointer-events: auto;
 }
 
 .level-modal-content {

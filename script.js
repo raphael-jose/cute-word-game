@@ -47,47 +47,46 @@ class WordGame {
             }
         } catch {}
     }
+ 
+    openTutorialModal() {
+        const modal = document.createElement('div');
+        modal.className = 'level-modal tutorial-modal';
+        modal.innerHTML = `
+            <div class="level-modal-content">
+                <div class="level-modal-header">
+                    <h2>Como Jogar 📝</h2>
+                </div>
+                <div class="level-modal-body">
+                    <div class="tutorial-step">
+                        <p>1. Encontre palavras na grade de letras 🔍</p>
+                        <p>2. Clique e arraste para selecionar as letras ✨</p>
+                        <p>3. As palavras podem estar em qualquer direção 🔄</p>
+                        <p>4. Use dicas se precisar de ajuda 💡</p>
+                        <p>5. Encontre todas as palavras para avançar de nível 🎮</p>
+                        <p>6. Procure por surpresas especiais escondidas! 🎁</p>
+                    </div>
+                </div>
+                <button class="next-level-button">Entendi! 👍</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('button').addEventListener('click', () => {
+            modal.remove();
+        });
+        setTimeout(() => modal.classList.add('show'), 100);
+    }
 
     setupTutorial() {
         const howToPlayButton = document.getElementById('how-to-play');
         if (howToPlayButton) {
-            howToPlayButton.addEventListener('click', () => {
-                const modal = document.createElement('div');
-                modal.className = 'level-modal tutorial-modal';
-                modal.innerHTML = `
-                    <div class="level-modal-content">
-                        <div class="level-modal-header">
-                            <h2>Como Jogar 📝</h2>
-                        </div>
-                        <div class="level-modal-body">
-                            <div class="tutorial-step">
-                                <p>1. Encontre palavras na grade de letras 🔍</p>
-                                <p>2. Clique e arraste para selecionar as letras ✨</p>
-                                <p>3. As palavras podem estar em qualquer direção 🔄</p>
-                                <p>4. Use dicas se precisar de ajuda 💡</p>
-                                <p>5. Encontre todas as palavras para avançar de nível 🎮</p>
-                                <p>6. Procure por surpresas especiais escondidas! 🎁</p>
-                            </div>
-                        </div>
-                        <button class="next-level-button">Entendi! 👍</button>
-                    </div>
-                `;
-
-                document.body.appendChild(modal);
-                
-                modal.querySelector('button').addEventListener('click', () => {
-                    modal.remove();
-                });
-
-                setTimeout(() => modal.classList.add('show'), 100);
-            });
+            howToPlayButton.style.display = 'none';
+            howToPlayButton.addEventListener('click', () => this.openTutorialModal());
         }
     }
 
     setupStartScreen() {
         const startButton = document.getElementById('start-game');
         const continueButton = document.getElementById('continue-game');
-        const resetAllButton = document.createElement('button');
         const levelSelect = document.getElementById('level-select');
         const buttonsWrap = document.querySelector('.start-buttons');
         
@@ -111,9 +110,6 @@ class WordGame {
         }).catch(() => {});
         
         // Adiciona botão de Reset All
-        resetAllButton.id = 'reset-all-button';
-        resetAllButton.className = 'reset-all-button';
-        resetAllButton.innerHTML = '🗑️ Zerar Progresso';
         
         startButton.addEventListener('click', async () => {
             let selectedLevel = 1;
@@ -141,18 +137,7 @@ class WordGame {
             this.startGame(selectedLevel);
         });
         
-        resetAllButton.addEventListener('click', () => {
-            this.showConfirmModal(
-                '🚨 Reset All Progress',
-                'Você tem certeza que deseja resetar todo o progresso? Isso não pode ser desfeito!',
-                () => {
-                    localStorage.removeItem('wordGameSave');
-                    continueButton.style.display = 'none';
-                    resetAllButton.remove();
-                    this.showMessageModal('✅ Progresso Resetado', 'Todo o progresso foi resetado com sucesso!');
-                }
-            );
-        });
+        
         
         // Verifica se existe jogo salvo
         const savedGame = localStorage.getItem('wordGameSave');
@@ -164,8 +149,7 @@ class WordGame {
                 this.loadGame();
             });
             
-            // Adiciona o botão de reset apenas se houver save
-            document.querySelector('.start-buttons').appendChild(resetAllButton);
+            // Botão de reset movido para o menu hambúrguer
         } else {
             continueButton.style.display = 'none';
         }
@@ -316,6 +300,8 @@ class WordGame {
         panel.innerHTML = `
             <button class="menu-item theme-toggle">${themeLabel}</button>
             <button class="menu-item sound-toggle">${soundLabel}</button>
+            <button class="menu-item how-to-play">📝 Como Jogar</button>
+            <button class="menu-item reset-progress">🗑️ Zerar Progresso</button>
         `;
         button.addEventListener('click', () => {
             panel.classList.toggle('show');
@@ -342,6 +328,21 @@ class WordGame {
                     panel.querySelector('.sound-toggle').textContent = '🔈 Música';
                 }
             } catch {}
+        });
+        panel.querySelector('.how-to-play').addEventListener('click', () => {
+            this.openTutorialModal();
+        });
+        panel.querySelector('.reset-progress').addEventListener('click', () => {
+            const continueButton = document.getElementById('continue-game');
+            this.showConfirmModal(
+                '🚨 Reset All Progress',
+                'Você tem certeza que deseja resetar todo o progresso? Isso não pode ser desfeito!',
+                () => {
+                    localStorage.removeItem('wordGameSave');
+                    if (continueButton) continueButton.style.display = 'none';
+                    this.showMessageModal('✅ Progresso Resetado', 'Todo o progresso foi resetado com sucesso!');
+                }
+            );
         });
         document.body.appendChild(button);
         document.body.appendChild(panel);
@@ -669,8 +670,9 @@ class WordGame {
 
     setupEventListeners() {
         document.querySelector('.game-board').addEventListener('click', (e) => {
-            if (e.target.classList.contains('letter-tile')) {
-                this.handleTileClick(e.target);
+            const tile = e.target.closest('.letter-tile');
+            if (tile) {
+                this.handleTileClick(tile);
             }
         });
     }
@@ -1874,32 +1876,6 @@ class WordGame {
             }
         }
         
-        // Garante presença do botão "Zerar Progresso" na tela inicial quando houver save
-        if (savedGame && !document.getElementById('reset-all-button')) {
-            const resetAllButton = document.createElement('button');
-            resetAllButton.id = 'reset-all-button';
-            resetAllButton.className = 'reset-all-button';
-            resetAllButton.innerHTML = '🗑️ Zerar Progresso';
-            
-            resetAllButton.addEventListener('click', () => {
-                this.showConfirmModal(
-                    '🚨 Reset All Progress',
-                    'Você tem certeza que deseja resetar todo o progresso? Isso não pode ser desfeito!',
-                    () => {
-                        localStorage.removeItem('wordGameSave');
-                        const continueBtn = document.getElementById('continue-game');
-                        if (continueBtn) continueBtn.style.display = 'none';
-                        resetAllButton.remove();
-                        this.showMessageModal('✅ Progresso Resetado', 'Todo o progresso foi resetado com sucesso!');
-                    }
-                );
-            });
-            
-            const startButtons = document.querySelector('.start-buttons');
-            if (startButtons) {
-                startButtons.appendChild(resetAllButton);
-            }
-        }
     }
     
     setupThemeControls() {
